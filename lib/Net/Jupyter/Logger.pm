@@ -36,7 +36,7 @@ class Logging is export {
   has Str $.uri = $log-uri;
 
   our sub logging() is export {
-    $log-publisher := Logging.new unless $log-publisher;
+    $log-publisher := Logging.new unless $log-publisher.defined;
     return $log-publisher;
   }
 
@@ -82,13 +82,13 @@ class Logger is export {
  method TWEAK {
  }
 
-  method set-default-level(*%h ) { say  %h.keys[0];
+  method default-level(*%h ) { say  %h.keys[0];
     die "level must be one of { %LEVELS.keys }" unless %h.elems == 1 and  %LEVELS{ %h.keys[0] }:exists;
     $!level = %h.keys[0];
     return self;
   }
 
-  method set-domains(*@domains) {
+  method domains(*@domains) {
     die "at least one domain is required"   unless @domains.elems > 0;
     %!domains = zip(@domains.flat
                       .map( { die "domain $_ is not a String" unless $_.isa(Str) ;$_ }  )
@@ -98,11 +98,11 @@ class Logger is export {
     return self;
   }
 
-  method set-target(Str $target) {
+  method target(Str $target) {
     $!target = $target;
     return self;
   }
-  method set-style(*%h) {
+  method style(*%h) {
     die "level must be one of { %STYLES.keys }" unless %h.elems == 1 and  %STYLES{ %h.keys[0] }:exists;
     $!style = %h.keys[0];
     return self;
