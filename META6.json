@@ -1,0 +1,35 @@
+{
+  "name": "Net::Jupyter",
+  "source-url": "https://github.com/gabrielash/perl6-jupyter.git",
+  "support": {
+    "source": null
+  },
+  "perl": "6.c",
+  "resources": [
+
+  ],
+  "build-depends": [
+
+  ],
+
+  "auth": "github:gabrielash",
+
+  "depends": [
+    "Net::ZMQ:auth(github:gabrielash)"
+  ],
+  "tags": [
+
+  ],
+  "license": "Artistic-2.0",
+  "test-depends": [
+    "Test::META"
+  ],
+  "provides": {
+
+  },
+  "production": false,
+  "version": "0.0.1",
+  "meta-version": "0",
+  "authors": ["Gabriel Ash", "github:gabrielash" ],
+  "description": "Perl6 ikernel for Jupyter"
+}
