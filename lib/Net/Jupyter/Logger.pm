@@ -26,6 +26,40 @@ my %domains = %('none' => 1);
 class Logger {...}
 class Logging {...}
 
+role yaml-format {
+  method yaml-format(:$builder, :$prefix, :$timestamp, :$level, :$domain, :$content, :$target ) {
+    $builder.add(qq:to/END_YAML/)
+      timestamp: $timestamp
+      prefix: "$prefix"
+      level: $level
+      domain: $domain
+      target: $target
+      content: "$content"
+      END_YAML
+      #:
+  }
+}
+
+role zmq-format {
+  method zmq-format(:$builder, :$prefix, :$timestamp, :$level, :$domain, :$content, :$target) {
+    $builder.add($content)\
+    .add($timestamp)\
+    .add($prefix)\
+    .add($level)\
+    .add($domain)\
+    .add($target);
+  }
+}
+
+role json-format {
+  method json-format(:$builder, :$prefix, :$timestamp, :$level, :$domain, :$content, :$target ) {
+    my %h = qqw/prefix $prefix level $level domain $domain target $target/;
+    %h{'content'}  = $content;
+    %h{'timestamp'} = $timestamp;
+    $builder.add(to-json(%h));
+  }
+}
+
 my Logging $log-publisher;
 
 class Logging is export {
@@ -69,17 +103,23 @@ class Logging is export {
 
 }
 
-class Logger is export {
+class Logger does yaml-format does zmq-format does json-format is export {
   has Logging $.logging;
   has Str $.level = 'warning';
   has Str $.target = 'user';
-  has Str $.style = 'simple';
+  has Str $.style = 'yaml';
   has Str $.default-domain = 'none';
   has Str $.prefix is required;
   has %.domains = %('none' => 1);
   has $.debug = False;
+  has %!styles;
 
  method TWEAK {
+   my %methods = self.WHAT.^methods.map( { [ $_.name, $_ ] } ).flat;
+   %!styles = %methods.keys.grep(/ \-format$ / )\
+                                .map( { $_ ~~ m/(.+) \-format$  /;
+                                        [ "$0", %methods{$_}] }  )\
+                                .flat;
  }
 
   method default-level(*%h ) { say  %h.keys[0];
@@ -102,8 +142,9 @@ class Logger is export {
     $!target = $target;
     return self;
   }
+
   method style(*%h) {
-    die "level must be one of { %STYLES.keys }" unless %h.elems == 1 and  %STYLES{ %h.keys[0] }:exists;
+    die "style must be one of { %!styles.keys }" unless %h.elems == 1 and  %!styles{ %h.keys[0] }:exists;
     $!style = %h.keys[0];
     return self;
   }
@@ -116,41 +157,17 @@ class Logger is export {
     self!log-send($content, $lvl, $dom);
   }
 
-
-
   method !log-send(Str $content, $level, $domain )  {
     my $timestamp = DateTime.new(now).Str;
     my $builder = MsgBuilder.new\
         .add($!prefix, :newline)\
+        .add(:empty)
         .add($!style, :newline);
 
-    given $!style {
-      when 'zmq' {
-        $builder.add($content)\
-        .add($timestamp)\
-        .add($!prefix)\
-        .add($level)\
-        .add($domain)\
-        .add($!target)
-      }
-      when 'yaml' {
-        $builder.add(qq:to/END_YAML/)
-          timestamp: $timestamp
-          prefix: "$!prefix"
-          level: $level
-          domain: $domain
-          target: $!target
-          content: "$content"
-          END_YAML
-          #:
-      }
-      when 'json' {
-        my %h = qqw/prefix $!prefix level $level domain $domain target $!target/;
-        %h{'content'}  = $content;
-        %h{'timestamp'} = $timestamp;
-        $builder.add(to-json(%h));
-      }
-    }
+    my Method $m = %!styles{$!style};
+    $builder = self.$m(:$builder, :$!prefix, :$timestamp
+                                            , :$level, :$domain, :$!target, :$content );
+
     $builder.finalize.send( $!logging!Logging::socket );
     say $builder.copy if $!debug;
   }
