@@ -30,15 +30,36 @@ This is in development. The only certainty is that the tests pass on my machine.
 
     my $log-system = Logging.new( 'tcp://127.127.8.17:8022' );
 
-#### Net::Jupyter::Logging  (to be moved to separate rep)
+  Methods
+    logger(:prefix)  ; returns a Logger 
+  
+
+#### Net::Jupyter::Logger  (to be moved to separate rep)
 
 A logger that logs to a ZMQ socket.
 
+    Example 1 simple:
+      my $l = Logging::logging.logger;
+      $l.log 'an important message';
+
+    Example 2 less simple: 
+      my $logger = Logging::logging('tcp://78.78.1.7')\
+                                    .logger\
+                                    .default-level( :warning )\
+                                    .domains( < database engine front-end nativecall > )\
+                                    .target( 'debug' )\
+                                    .format(:json);
+
+      $logger.log( 'an important message' :critical :front-end );
+
+
+
+    
     Attributes
       prefix;   required
       level; (default level  = warning)
       target; (default target = user )
-      style;   defaulr yaml
+      format;   defaulr yaml
       default-domain; default 'none';
       %domains ; keys are legit domain
       debug ;  default False;
@@ -47,26 +68,25 @@ A logger that logs to a ZMQ socket.
       default-level
       domains( @list)
       target
-      style
+      format
 
     Methods
       log( log-message, :level, :domain )
         
 The logging uses a publisher sopcket. All protocols send first
   1. prefix
-  2. style [ zmq | yaml | json | ... ]
-  3. empty frame
+  2. domain
+  3. level
+  4. format [ zmq | yaml | json | ... ]
+  5. empty frame
 
-the next frames depend on the style. For zmq
-  4. content
-  5. timestamp
-  6. prefix
-  7. level
-  8. domain
-  9. target
+the next frames depend on the format. For zmq
+  6. content
+  7. timestamp
+  8. target
 
 for yaml/json
-  4. yaml/json formatted  
+  6. yaml/json formatted  
 
 To add your own formatter, add a role to the logger with a method 
   method name-format(MsgBuilder :builder, :prefix, :timestamp, :level , :domain, :target, :content
@@ -75,43 +95,8 @@ To add your own formatter, add a role to the logger with a method
   return $builder;
   }
 the builder should be returned unfinalized. 
-then set the style to name:
-  $logger.style('name');
-
-
-
-
-
-
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-my $logger = $logsys.logger(:$prefix);
-my $logger2 = $logsys.logger(:prefix("--$prefix"), :debug);
-
-ok $logger.defined , 'got logger test';
-
-lives-ok { $logger.domains('dom1', 'dom2' ); } ,"set domains";
-lives-ok { $logger.default-level(:info); } ,"set level info";
-lives-ok { $logger.target('syslog'); } ,"set target syslog";
-lives-ok { $logger.style(:yaml);} ,"set style yaml";
-lives-ok { $logger2.style(:yaml);} ,"set style yaml";
-
-
-
-
+then set the format to name:
+  $logger.format('name');
 
 ## LICENSE
 

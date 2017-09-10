@@ -11,7 +11,7 @@ BEGIN %*ENV<PERL6_TEST_DIE_ON_FAIL> = 1;
 
 # plan 1;
 
-say "testing packages";
+say "testing Logger";
 
 use Net::ZMQ::Context:auth('github:gabrielash');
 use Net::ZMQ::Socket:auth('github:gabrielash');
@@ -28,8 +28,8 @@ ok $logger.defined , 'got logger test';
 lives-ok { $logger.domains('dom1', 'dom2' ); } ,"set domains";
 lives-ok { $logger.default-level(:info); } ,"set level info";
 lives-ok { $logger.target('syslog'); } ,"set target syslog";
-lives-ok { $logger.style(:yaml);} ,"set style yaml";
-lives-ok { $logger2.style(:yaml);} ,"set style yaml";
+lives-ok { $logger.format(:yaml);} ,"set format yaml";
+lives-ok { $logger2.format(:yaml);} ,"set format yaml";
 
 my $cnt = 0;
 my $promise = start { 
@@ -48,8 +48,8 @@ my $promise = start {
     }
 
 $logger.log('nice day');
-$logger2.log('you will never see this', :level('debug') );
-$logger.log('another nice day', :level('critical') );
+$logger2.log('you will never see this', :debug );
+$logger.log('another nice day', :critical );
 
 ok $cnt = 2, "correct messages seen";
 await $promise;
