@@ -1,5 +1,7 @@
 #!/usr/bin/env perl6
 
+unit module Net::Jupyter::Protocol;
+
 use v6;
 
 use Net::ZMQ::Context:auth('github:gabrielash');
@@ -10,28 +12,29 @@ use JSON::Tiny;
 use Digest::HMAC;
 use Digest::SHA;
 use UUID;
+use Net::Jupyter::Logger;
 
 my $key ='';
-constant IO_LOG = '3999';
 constant DELIM = '<IDS|MSG>';
 my $engine_id = UUID.new;
 
-
-
-class WireMsg {
+class Protocol is export {
   has MsgRecv $.msg is required;
   has UInt $!begin;
+  has $.logger;
+
 
   method TWEAK {
     $!begin = self.find-begin;
     die "signature mismatch. Exiting" unless self.signature eq self.auth;
-
+    $!logger = Logging::instance.logger;
   }
 
   method find-begin( --> Int ) {
     for 0..^$!msg.elems {
       return ($_ + 1) if $!msg[$_] eq DELIM;
     }
+    $!logger.log('exiting, malformed message' ~ $!msg.perl);
     die "malformed wire message " ~ $!msg.perl;
   }
 
@@ -49,17 +52,11 @@ class WireMsg {
   method type             {return from-json(self.header)< msg_type > }
   method version          {return from-json(self.header)< version > }
 
-  multi method log(:$raw!) {
-
-  }
-  multi method log() {
-    MsgBuilder.new\
-                    .add("SHELL:\n________________", :newline)\
-                    .add('header: ')\
-                    .add("{ self.type } { self.version } { self.id }", :newline)\
-                    .add('content: ')\
-                    .add(self.content, :newline)\
-                    .finalize;
-                    #.send($iolog-sk);
+  method log() {
+    $!logger.log(qq:to/END/);
+      header: { self.type } { self.version } { self.id }
+      content: { self.content}
+      END
+      #:
   }
 }
