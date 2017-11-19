@@ -3,7 +3,7 @@
 use v6;
 use lib '/home/docker/workspace/perl6-net-zmq/lib';
 use lib '/home/docker/workspace/p6-log-zmq/lib';
-use lib 'lib';
+use lib '/home/docker/workspace/perl6-jupyter/lib';
 
 use Net::ZMQ::Context:auth('github:gabrielash');
 use Net::ZMQ::Socket:auth('github:gabrielash');
@@ -27,8 +27,7 @@ my $err-str = 'Perl6 ikernel:';
 
 constant POLL_DELAY = 10;
 
-my Logger $LOG = Logging::logging.logger(:prefix('jupyter'))\
-                    .format(:zmq);
+my Logger $LOG = Logging::instance('jupyter', :format(:zmq)).logger;
 
 $LOG.log("$err-str init");
 
