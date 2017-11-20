@@ -1,4 +1,5 @@
 lib/.precomp
+bin/k.pl
 Makefile
 *.swp
 *.bak

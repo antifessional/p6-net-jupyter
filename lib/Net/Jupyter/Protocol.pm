@@ -14,7 +14,7 @@ use Digest::SHA;
 use UUID;
 use Net::Jupyter::Logger;
 
-my $key ='';
+#my $key ='';
 constant DELIM = '<IDS|MSG>';
 my $engine_id = UUID.new;
 
@@ -22,12 +22,17 @@ class Protocol is export {
   has MsgRecv $.msg is required;
   has UInt $!begin;
   has $.logger;
+  has $.key;
 
 
   method TWEAK {
     $!begin = self.find-begin;
-    die "signature mismatch. Exiting" unless self.signature eq self.auth;
-    $!logger = Logging::instance.logger;
+
+    unless self.signature eq self.auth {
+      $!logger.log(self.auth ~ "<-->" ~ self.signature );
+      die "signature mismatch. Exiting" ~ $!msg.perl;
+     }
+
   }
 
   method find-begin( --> Int ) {
@@ -46,7 +51,7 @@ class Protocol is export {
   method content()        {  return $!msg[$!begin + 4] }
   method extra()          {  return $!msg[ $!begin + 5..^$!msg.elems] }
   method auth() {
-    return hmac-hex($key, self.header ~ self.parent-header ~ self.metadata ~ self.content, &sha256);
+    return hmac-hex($!key, self.header ~ self.parent-header ~ self.metadata ~ self.content, &sha256);
   }
   method id               {return from-json(self.header)< msg_id > }
   method type             {return from-json(self.header)< msg_type > }

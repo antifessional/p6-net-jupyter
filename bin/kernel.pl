@@ -63,13 +63,14 @@ sub close-all {
 
 sub shell-handler(MsgRecv $m) {
   $LOG.log("$err-str: SHELL");
-  my Protocol $pcol .= new(:msg($m));
+  my Protocol $pcol .= new(:msg($m), :logger($LOG), :key($key));
   $pcol.log;
 
 }
 
 sub ctrl-handler(MsgRecv $m) {
   $LOG.log("$err-str: CTRL");
+  die "CTRL";
   my Protocol $pcol .= new(:msg($m));
   $pcol.log;
 
@@ -93,10 +94,10 @@ sub MAIN( $connection-file ) {
   $iopub-uri = $uri-prefix ~ %conn{'iopub_port'};
 
   $ctx .= new;
-  $ctrl  .= new( $ctx , :router );
-  $shell .= new( $ctx , :router );
-  $stdin .= new( $ctx , :router );
-  $iopub .= new( $ctx , :publisher );
+  $ctrl  .= new( $ctx, :router );
+  $shell .= new( $ctx, :router );
+  $stdin .= new( $ctx, :router );
+  $iopub .= new( $ctx, :publisher );
 
   $iopub.bind( $iopub-uri );
   $ctrl.bind( $ctrl-uri );
@@ -105,12 +106,14 @@ sub MAIN( $connection-file ) {
 
   $key = %conn< key >;
   $scheme = %conn< signature_scheme >;
+  die "hmac-sha256 is the only implemented signature scheme "
+    unless $scheme eq 'hmac-sha256';
 
   $heartbeat = EchoServer.new( :uri($heartbeat-uri) );
   $LOG.log("$err-str heartbeat started $heartbeat-uri");
 
   my Poll $poller = PollBuilder.new\
-      .add( MsgRecvPollHandler.new($ctrl, &ctrl-handler ))\
+#      .add( MsgRecvPollHandler.new($ctrl, &ctrl-handler ))\
       .add( MsgRecvPollHandler.new($shell, &shell-handler ))\
 #      .add( MsgRecvPollHandler.new($stdin, &stdin-handler ))\
       .delay( POLL_DELAY)\
@@ -119,6 +122,7 @@ sub MAIN( $connection-file ) {
   $LOG.log("$err-str polling set");
 
   loop {
+      #die "POLL SETTING $shell-uri";
       last if Any === $poller.poll();
   }
 
