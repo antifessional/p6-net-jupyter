@@ -11,7 +11,10 @@ use Net::ZMQ::Message:auth('github:gabrielash');
 use Net::ZMQ::Poll:auth('github:gabrielash');
 use Net::ZMQ::EchoServer:auth('github:gabrielash');
 
+use Net::Jupyter::Common;
+use Net::Jupyter::Utils;
 use Net::Jupyter::Protocol;
+
 use Log::ZMQ::Logger;
 
 use JSON::Tiny;
@@ -23,7 +26,9 @@ my $VERSION := '0.0.1';
 my $AUTHOR  := 'Gabriel Ash';
 my $LICENSE := 'Artistic-2.0';
 my $SOURCE  :=  'https://github.com/gabrielash/jupyter-perl6';
+
 my $err-str = 'Perl6 ikernel:';
+my $engine-id;
 
 constant POLL_DELAY = 10;
 
@@ -60,11 +65,68 @@ sub close-all {
   $LOG.log("$err-str: Adieu");
 }
 
+sub uuid {
+  return UUID.new(:version(4)).Str;
+  #return UUID.new(:version(4)).Blob().gist.substr(14,47).split(' ').join('').uc();
+}
+
+sub new-header($type) {
+    return qq:to/HEADER_END/;
+      \{"date": "{ DateTime.new(now) }",
+      "msg_id": "{ uuid() }",
+      "username": "kernel",
+      "session": "$engine-id",
+      "msg_type": "$type",
+      "version": "5.0"\}
+      HEADER_END
+      #:
+}
+
+sub send(Socket:D :$stream!, Str:D :$type!, :$content, :$parent-header, :$metadata, :@identities) {
+    my $header = new-header($type);
+    my $signature =  hmac-hex($key, $header ~ $parent-header ~ $metadata ~ $content,  &sha256);
+    my MsgBuilder $m .= new;
+    @identities.map( { $m.add($_) } );
+    say "IDENTITES: ", @identities;
+
+    my Message $msg = $m.add(DELIM)\
+                        .add($signature)\
+                        .add( $header )\
+                        .add( $parent-header )\
+                        .add($metadata)\
+                        .add( $content )\
+                        .finalize;
+      $LOG.log("SENDING " ~ $msg.copy);
+
+      $msg.send($stream);
+  }
+
+
+
 
 sub shell-handler(MsgRecv $m) {
   $LOG.log("$err-str: SHELL");
-  my Protocol $pcol .= new(:msg($m), :logger($LOG), :key($key));
+  ## echo $m on $iopub  ??
+
+  my Protocol $pcol .= new(:msg($m), :key($key), :logger($LOG) );
+  given $pcol.type() {
+    when 'kernel_info_request' {
+        my $content = kernel-info-reply-content();
+        my $parent-header = $pcol.header();
+        my $metadata = '{}';
+        my @identities = $pcol.identities();
+        send(:stream($shell), :type('kernel_info_reply'), :$content, :$parent-header, :$metadata, :@identities);
+
+    }
+    when 'comm_open' {
+
+    }
+    default {
+      $LOG.log("message type $_ NOT IMPLEMENTED");
+    }
+  }
   $pcol.log;
+
 
 }
 
@@ -77,6 +139,8 @@ sub ctrl-handler(MsgRecv $m) {
 }
 
 sub MAIN( $connection-file ) {
+
+  $engine-id = uuid();
 
   die "$err-str Connection file not found" unless $connection-file.IO.e;
   die "$err-str Connection file is not a file" unless $connection-file.IO.f;

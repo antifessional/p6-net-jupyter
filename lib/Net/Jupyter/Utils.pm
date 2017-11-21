@@ -9,37 +9,37 @@ use Net::ZMQ::Socket:auth('github:gabrielash');
 use Net::ZMQ::Message:auth('github:gabrielash');
 use Net::ZMQ::Poll:auth('github:gabrielash');
 use JSON::Tiny;
-use Digest::HMAC;
-use Digest::SHA;
-use UUID;
 
 
-sub kernel-info-reply {
+
+sub kernel-info-reply-content is export {
   my %info = <
     protocol_version 5.2.0
-    implementation  perl6
+    implementation  iperl6
     implementation_version 0.0.1 >;
-  %info< language_info > = <
+  my %language_info = <
         name perl6
         version 6.c
         mimetype application/perl6
         file_extension .pl6>;
-  %info< banner > = 'Perl6';
+=begin c
+        # Pygments lexer, for highlighting. Only needed if it differs from the 'name' field.
+        'pygments_lexer': str,
+
+        # Codemirror mode, for for highlighting in the notebook.  Only needed if it differs from the 'name' field.
+        'codemirror_mode': str or dict,
+
+        # Nbconvert exporter, if notebooks written with this kernel should be exported with something other than the general 'script' exporter.
+        'nbconvert_exporter': str,
+=end c
+=cut
+
+  %info< banner > = 'Awesomest Perl6';
   %info<help_links> = [ %("text", "help here", "url", "http://perl6.org") ] ;
+  %info< language_info > = %language_info;
   return to-json(%info);
 }
 
-sub new-header(:$id, :$type)  {
-  return qq:to/HEADER_END/;
-  \{"date": "{ DateTime.new(now) }"
-  "msg_id": "$id",
-  "username": "kernel",
-  "session": "$engine_id",
-  "msg_type": "$type",
-  "version": "5.0"\}
-  HEADER_END
-  #:
-}
 
 sub execution-reply($expressions, $counter) {
   my %content = qw/ status ok execution_count $counter/;
@@ -50,8 +50,8 @@ sub execution-reply($expressions, $counter) {
 
 
 
-sub ctrl-handler(MsgRecv $m) {
-
+sub tmp-ctrl-handler(MsgRecv $m) {
+=begin c
   my WireMsg:D $wire .= new(:msg($m));
   given $wire.type {
     when 'shutdown_request' {
@@ -68,12 +68,15 @@ sub ctrl-handler(MsgRecv $m) {
   }
 
   1;
+=end c
+=cut
+
 }
 
-sub shell-handler(MsgRecv $m) {
+sub temp-shell-handler(MsgRecv $m) {
   say "HANDLING SHELL";
-  my WireMsg $wire .= new(:msg($m));
-  $wire.log;
+#  my WireMsg $wire .= new(:msg($m));
+#  $wire.log;
 =begin c
   given $wire.type {
     when 'execute_request'  {
@@ -122,8 +125,4 @@ sub shell-handler(MsgRecv $m) {
 =cut
 
   Any;
-}
-
-sub stdin-handler(MsgRecv $m) {
-  1;
 }
