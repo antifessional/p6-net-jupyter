@@ -61,6 +61,8 @@ class Protocol is export {
   method type()           {return from-json(self.header)< msg_type > }
   method version()        {return from-json(self.header)< version > }
 
+  method code()        {return from-json(self.content)< code > }
+
   method auth() {
     return hmac-hex($!key, self.header ~ self.parent-header ~ self.metadata ~ self.content, &sha256);
   }

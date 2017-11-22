@@ -10,9 +10,63 @@ use Net::ZMQ::Message:auth('github:gabrielash');
 use Net::ZMQ::Poll:auth('github:gabrielash');
 use JSON::Tiny;
 
+constant NHASH = '{}';
+constant NARRAY = '[]';
+
+sub status-content($status) is export {
+  die "Bad status: $status" unless ('idle','busy').grep( $status );
+  return to-json( %( qqw/ execuution_state $status/)  );
+}
 
 
-sub kernel-info-reply-content is export {
+sub execute_input-content($count, $code) is export {
+  return qq:to/EX_IN_END/;
+    \{"execution_count": $count,
+      "code": "$code" \}
+    EX_IN_END
+    #;
+
+}
+
+sub stream-content($stream, $text) is export {
+  return qq:to/STREAM_END/;
+    \{"name": "$stream",
+      "text": "$text" \}
+    STREAM_END
+    #;
+
+}
+
+sub execute_result-content($count, $result, $metadata) is export {
+  return qq:to/EX_RES_END/;
+    \{"execution_count": $count,
+      "data": \{ "text/plain": "$result" \},
+      "metadata": \{\} \}
+    EX_RES_END
+    #;
+}
+
+sub execute_reply-content($expressions, $count) is export {
+  return qq:to/EXECUTE_END/;
+  \{ "status": "ok",
+    "execution_count": $count,
+    "payload": [],
+    "user_expressions": $expressions \}
+  EXECUTE_END
+  #;
+}
+
+sub execute_reply_metadata($id) is export {
+  return qq:to/EX_META_END/;
+    \{"started": "{ DateTime.new(now) }",
+    "dependencies_met": true,
+    "engine": "$id",
+    "status": "ok"\}
+    EX_META_END
+}
+
+
+sub kernel_info-reply-content is export {
   my %info = <
     protocol_version 5.2.0
     implementation  iperl6
@@ -41,11 +95,6 @@ sub kernel-info-reply-content is export {
 }
 
 
-sub execution-reply($expressions, $counter) {
-  my %content = qw/ status ok execution_count $counter/;
-  %content< user_expressions>  = [ 'x' , 7 ];
-  return to-json( %content );
-}
 
 
 

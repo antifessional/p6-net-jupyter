@@ -22,6 +22,10 @@ use Digest::HMAC;
 use Digest::SHA;
 use UUID;
 
+# **************************************************** //
+use MONKEY-SEE-NO-EVAL;
+# **************************************************** //
+
 my $VERSION := '0.0.1';
 my $AUTHOR  := 'Gabriel Ash';
 my $LICENSE := 'Artistic-2.0';
@@ -101,33 +105,49 @@ sub send(Socket:D :$stream!, Str:D :$type!, :$content, :$parent-header, :$metada
       $msg.send($stream);
   }
 
-
-
-
 sub shell-handler(MsgRecv $m) {
   $LOG.log("$err-str: SHELL");
-  ## echo $m on $iopub  ??
 
   my Protocol $pcol .= new(:msg($m), :key($key), :logger($LOG) );
+  my $parent-header = $pcol.header();
+  my $metadata = '{}';
+  my @identities = $pcol.identities();
+
   given $pcol.type() {
     when 'kernel_info_request' {
-        my $content = kernel-info-reply-content();
-        my $parent-header = $pcol.header();
-        my $metadata = '{}';
-        my @identities = $pcol.identities();
+        my $content = kernel_info-reply-content();
         send(:stream($shell), :type('kernel_info_reply'), :$content, :$parent-header, :$metadata, :@identities);
+    }
+    when 'execute_request' {
+      my $count = 1;
+      my $code = $pcol.code;
+      my $result = EVAL($code);
+      my $expressions = '{}';
+      say "CODE:$code\nEVAL: $result";
+      my @iopub-identities = 'execute_request';
+      send(:stream($iopub), :type('status'), :content(" { status-content('busy') }")
+            , :$parent-header, :metadata('{}'), :identities(@iopub-identities ));
+      send(:stream($iopub), :type('execute_input'), :content(execute_input-content($count, $code))
+            , :$parent-header, :metadata('{}'), :identities( @iopub-identities ));
+      send(:stream($iopub), :type('stream'), :content(stream-content('stdout', $code))
+            , :$parent-header, :metadata('{}'), :identities( @iopub-identities ));
+      send(:stream($iopub), :type('execute_result'), :content(execute_result-content($count, $result, $metadata))
+            , :$parent-header, :metadata('{}'), :identities( @iopub-identities ));
+      send(:stream($iopub), :type('status'), :content(status-content('idle'))
+            , :$parent-header, :metadata('{}'), :identities( @iopub-identities ));
 
+      send(:stream($shell), :type('execute_reply')
+          , :content(execute_reply-content($expressions, $count))
+          , :$parent-header
+          , :metadata(execute_reply_metadata($engine-id))
+          , :@identities);
     }
     when 'comm_open' {
-
     }
     default {
       $LOG.log("message type $_ NOT IMPLEMENTED");
     }
   }
-  $pcol.log;
-
-
 }
 
 sub ctrl-handler(MsgRecv $m) {
