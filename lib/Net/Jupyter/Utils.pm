@@ -4,10 +4,6 @@ unit module Net::Jupyter::Utils;
 
 use v6;
 
-use Net::ZMQ::Context:auth('github:gabrielash');
-use Net::ZMQ::Socket:auth('github:gabrielash');
-use Net::ZMQ::Message:auth('github:gabrielash');
-use Net::ZMQ::Poll:auth('github:gabrielash');
 use JSON::Tiny;
 use Digest::HMAC;
 use Digest::SHA;
@@ -128,11 +124,6 @@ sub kernel_info-reply-content is export {
 }
 
 
-
-
-
-
-sub tmp-ctrl-handler(MsgRecv $m) {
 =begin c
   my WireMsg:D $wire .= new(:msg($m));
   given $wire.type {
@@ -152,59 +143,3 @@ sub tmp-ctrl-handler(MsgRecv $m) {
   1;
 =end c
 =cut
-
-}
-
-sub temp-shell-handler(MsgRecv $m) {
-  say "HANDLING SHELL";
-#  my WireMsg $wire .= new(:msg($m));
-#  $wire.log;
-=begin c
-  given $wire.type {
-    when 'execute_request'  {
-
-      MsgBuilder.new\
-              .add('status')\
-              .add( new-header(:id($wire.id), :type('status')))\
-              .add( $wire.header )\
-              .add('{}')\
-              .add('{"execution_status":"busy" }')
-              .finalize\
-              .send-all($iolog-sk, $iopub-sk);
-      my $content = execution-reply($wire.content, 1);
-      MsgBuilder.new\
-              .add('execution_reply')\
-              .add( new-header(:id($wire.id), :type('execution_reply')))\
-              .add( $wire.header )\
-              .add('{}')\
-              .add( $content )\
-              .finalize\
-              .send-all($iolog-sk, $iopub-sk);
-    }
-    when 'kernel_info_request' {
-      MsgBuilder.new\
-              .add('kernel_info_reply')\
-              .add( new-header(:id($wire.id), :type('kernel_info_reply')))\
-              .add( $wire.header )\
-              .add('{}')\
-              .add( kernel-info-reply() )\
-              .finalize\
-              .send-all($iolog-sk, $iopub-sk);
-    }
-    when 'shutdown_request' {
-      MsgBuilder.new\
-              .add('shutdown_reply')\
-              .add( new-header(:id($wire.id), :type('shutdown_reply')))\
-              .add( $wire.header )\
-              .add('{}')\
-              .add( '{"restart": false }' )\
-              .finalize\
-              .send-all($iolog-sk, $iopub-sk);
-      return  Any;
-    }
-  }
-=end c
-=cut
-
-  Any;
-}

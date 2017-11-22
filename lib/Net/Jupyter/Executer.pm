@@ -3,7 +3,6 @@
 unit module Net::Jupyter::Executer;
 
 use v6;
-
 use Net::Jupyter::Common;
 
 # **************************************************** //
