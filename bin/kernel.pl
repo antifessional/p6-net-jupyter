@@ -13,18 +13,15 @@ use Net::ZMQ::EchoServer:auth('github:gabrielash');
 
 use Net::Jupyter::Common;
 use Net::Jupyter::Utils;
-use Net::Jupyter::Protocol;
+use Net::Jupyter::Receiver;
+use Net::Jupyter::Executer;
+
 
 use Log::ZMQ::Logger;
 
 use JSON::Tiny;
 use Digest::HMAC;
 use Digest::SHA;
-use UUID;
-
-# **************************************************** //
-use MONKEY-SEE-NO-EVAL;
-# **************************************************** //
 
 my $VERSION := '0.0.1';
 my $AUTHOR  := 'Gabriel Ash';
@@ -59,6 +56,8 @@ my Str $heartbeat-uri;
 
 my EchoServer $heartbeat;
 
+#
+
 sub close-all {
   $LOG.log("$err-str: Exiting now");
   $iopub.unbind.close;
@@ -69,25 +68,9 @@ sub close-all {
   $LOG.log("$err-str: Adieu");
 }
 
-sub uuid {
-  return UUID.new(:version(4)).Str;
-  #return UUID.new(:version(4)).Blob().gist.substr(14,47).split(' ').join('').uc();
-}
-
-sub new-header($type) {
-    return qq:to/HEADER_END/;
-      \{"date": "{ DateTime.new(now) }",
-      "msg_id": "{ uuid() }",
-      "username": "kernel",
-      "session": "$engine-id",
-      "msg_type": "$type",
-      "version": "5.0"\}
-      HEADER_END
-      #:
-}
 
 sub send(Socket:D :$stream!, Str:D :$type!, :$content, :$parent-header, :$metadata, :@identities) {
-    my $header = new-header($type);
+    my $header = new-header($type, $engine-id);
     my $signature =  hmac-hex($key, $header ~ $parent-header ~ $metadata ~ $content,  &sha256);
     my MsgBuilder $m .= new;
     @identities.map( { $m.add($_) } );
@@ -107,55 +90,89 @@ sub send(Socket:D :$stream!, Str:D :$type!, :$content, :$parent-header, :$metada
 
 sub shell-handler(MsgRecv $m) {
   $LOG.log("$err-str: SHELL");
+  my Receiver $recv .= new(:msg($m), :key($key));
+  $LOG.log($recv.Str);
 
-  my Protocol $pcol .= new(:msg($m), :key($key), :logger($LOG) );
-  my $parent-header = $pcol.header();
+  my $parent-header = $recv.header();
   my $metadata = '{}';
-  my @identities = $pcol.identities();
+  my @identities = $recv.identities();
 
-  given $pcol.type() {
+  given $recv.type() {
     when 'kernel_info_request' {
         my $content = kernel_info-reply-content();
         send(:stream($shell), :type('kernel_info_reply'), :$content, :$parent-header, :$metadata, :@identities);
     }
     when 'execute_request' {
-      my $count = 1;
-      my $code = $pcol.code;
-      my $result = EVAL($code);
-      my $expressions = '{}';
-      say "CODE:$code\nEVAL: $result";
+      my $code = $recv.code;
+      my $store-history = $recv.store-history;
+      my $silent = $recv.silent;
+      $store-history = False if $silent;
+      my %expressions = $recv.expressions;
+
+      say "CODE: $code"; say "$silent : $store-history"; say 'EXP'~ %expressions.perl;
+      my Executer $exec .= new(:$code, :$silent, :$store-history, :%expressions);
+
+      my $count         = $exec.count;
+      my $return-value  = $exec.return-value;
+      my $out           = $exec.stdout;
+      my $err           = $exec.stderr;
+      my $expressions   = to-json( $exec.user-expressions );
+      my $payloads      = to-json( $exec.payloads );
+      my $metadata      = to-json( $exec.metadata );
+#      my $count         = 1;
+#      my $return-value  = '11';
+#      my $out           = 'SUCESS';
+#      my $err           = 'NO ERR';
+#      my $expressions   = '{}';
+#      my $payloads      = '[]';
+#      my $metadata      = '{}';
+
+
       my @iopub-identities = 'execute_request';
+      # we are working
       send(:stream($iopub), :type('status'), :content(" { status-content('busy') }")
             , :$parent-header, :metadata('{}'), :identities(@iopub-identities ));
+      # publish input
       send(:stream($iopub), :type('execute_input'), :content(execute_input-content($count, $code))
             , :$parent-header, :metadata('{}'), :identities( @iopub-identities ));
-      send(:stream($iopub), :type('stream'), :content(stream-content('stdout', $code))
-            , :$parent-header, :metadata('{}'), :identities( @iopub-identities ));
-      send(:stream($iopub), :type('execute_result'), :content(execute_result-content($count, $result, $metadata))
-            , :$parent-header, :metadata('{}'), :identities( @iopub-identities ));
+
+      if (!$silent)     {
+        # publish errors ( stderr)
+        send(:stream($iopub), :type('stream'), :content(stream-content('stderr', $err))
+                  , :$parent-header, :metadata('{}'), :identities( @iopub-identities ))
+          if $err.defined;
+          # publish side-effects (stdout)
+          send(:stream($iopub), :type('stream'), :content(stream-content('stdout', $out))
+                , :$parent-header, :metadata('{}'), :identities( @iopub-identities ));
+          # publish returned value
+          send(:stream($iopub), :type('execute_result'), :content(execute_result-content($count, $return-value, $metadata))
+                , :$parent-header, :metadata('{}'), :identities( @iopub-identities ));
+      }
+      # we are done
       send(:stream($iopub), :type('status'), :content(status-content('idle'))
             , :$parent-header, :metadata('{}'), :identities( @iopub-identities ));
 
+      # reply
       send(:stream($shell), :type('execute_reply')
           , :content(execute_reply-content($expressions, $count))
           , :$parent-header
           , :metadata(execute_reply_metadata($engine-id))
           , :@identities);
-    }
+
+    }#when
     when 'comm_open' {
-    }
+    }#when
     default {
       $LOG.log("message type $_ NOT IMPLEMENTED");
-    }
-  }
-}
+    }#default
+  }#giveb
+}#shell-handler
 
 sub ctrl-handler(MsgRecv $m) {
   $LOG.log("$err-str: CTRL");
+  my Receiver $recv .= new(:msg($m));
+  $LOG.log($recv.Str);
   die "CTRL";
-  my Protocol $pcol .= new(:msg($m));
-  $pcol.log;
-
 }
 
 sub MAIN( $connection-file ) {

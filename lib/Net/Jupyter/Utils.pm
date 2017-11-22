@@ -9,9 +9,42 @@ use Net::ZMQ::Socket:auth('github:gabrielash');
 use Net::ZMQ::Message:auth('github:gabrielash');
 use Net::ZMQ::Poll:auth('github:gabrielash');
 use JSON::Tiny;
+use Digest::HMAC;
+use Digest::SHA;
+use UUID;
+
 
 constant NHASH = '{}';
 constant NARRAY = '[]';
+
+
+sub uuid is export {
+  return UUID.new(:version(4)).Str;
+  #return UUID.new(:version(4)).Blob().gist.substr(14,47).split(' ').join('').uc();
+}
+
+sub new-header($type, $engine-id) is export {
+    return qq:to/HEADER_END/;
+      \{"date": "{ DateTime.new(now) }",
+      "msg_id": "{ uuid() }",
+      "username": "kernel",
+      "session": "$engine-id",
+      "msg_type": "$type",
+      "version": "5.0"\}
+      HEADER_END
+      #:
+}
+
+
+sub error-content($name, $value, $traceback='[]') is export {
+  return qq:to/ERROR_END/;
+    \{ "status" : "error",
+    "ename" : "$name",
+    "evalue" : "$value",
+    "traceback" : $traceback \}
+    ERROR_END
+    #;
+}
 
 sub status-content($status) is export {
   die "Bad status: $status" unless ('idle','busy').grep( $status );
