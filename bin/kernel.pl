@@ -2,10 +2,6 @@
 
 use v6;
 
-use lib '/home/docker/workspace/perl6-net-zmq/lib';
-use lib '/home/docker/workspace/p6-log-zmq/lib';
-use lib '/home/docker/workspace/perl6-jupyter/lib';
-
 use Net::ZMQ::Context:auth('github:gabrielash');
 use Net::ZMQ::Socket:auth('github:gabrielash');
 use Net::ZMQ::Message:auth('github:gabrielash');
