@@ -1,6 +1,6 @@
 {
   "name": "Net::Jupyter",
-  "source-url": "https://github.com/gabrielash/perl6-jupyter.git",
+  "source-url": "https://github.com/gabrielash/p6-net-jupyter.git",
   "support": {
     "source": null
   },

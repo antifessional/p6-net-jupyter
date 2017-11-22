@@ -1,6 +1,7 @@
 lib/.precomp
 bin/k.pl
 example/simple_kernel.py
+conex
 Makefile
 *.swp
 *.bak

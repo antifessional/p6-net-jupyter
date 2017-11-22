@@ -1,4 +1,3 @@
 
-images based on 
-  http://perl.postbit.com/upload/109/voronoi-butterfly.png
-  Copyright belongs to Chromatic
+images based on https://kayne-stock.deviantart.com/art/butterfly-1-2264235
+

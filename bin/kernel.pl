@@ -1,6 +1,7 @@
 #!/usr/bin/env perl6
 
 use v6;
+
 use lib '/home/docker/workspace/perl6-net-zmq/lib';
 use lib '/home/docker/workspace/p6-log-zmq/lib';
 use lib '/home/docker/workspace/perl6-jupyter/lib';
@@ -88,6 +89,8 @@ sub send(Socket:D :$stream!, Str:D :$type!, :$content, :$parent-header, :$metada
       $msg.send($stream);
   }
 
+
+
 sub shell-handler(MsgRecv $m) {
   $LOG.log("$err-str: SHELL");
   my Receiver $recv .= new(:msg($m), :key($key));
@@ -109,7 +112,8 @@ sub shell-handler(MsgRecv $m) {
       $store-history = False if $silent;
       my %expressions = $recv.expressions;
 
-      say "CODE: $code"; say "$silent : $store-history"; say 'EXP'~ %expressions.perl;
+      # say "CODE: $code"; say "$silent : $store-history"; say 'EXP'~ %expressions.perl;
+
       my Executer $exec .= new(:$code, :$silent, :$store-history, :%expressions);
 
       my $count         = $exec.count;
@@ -136,7 +140,7 @@ sub shell-handler(MsgRecv $m) {
       send(:stream($iopub), :type('execute_input'), :content(execute_input-content($count, $code))
             , :$parent-header, :metadata('{}'), :identities( @iopub-identities ));
 
-      if (!$silent)     {
+      if (!$silent)  {
         # publish errors ( stderr)
         send(:stream($iopub), :type('stream'), :content(stream-content('stderr', $err))
                   , :$parent-header, :metadata('{}'), :identities( @iopub-identities ))

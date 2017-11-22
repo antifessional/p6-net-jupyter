@@ -5,12 +5,8 @@ unit module Net::Jupyter::Receiver;
 use v6;
 
 use Net::Jupyter::Common;
-#use Net::Jupyter::Utils;
 
-use Net::ZMQ::Context:auth('github:gabrielash');
-use Net::ZMQ::Socket:auth('github:gabrielash');
 use Net::ZMQ::Message:auth('github:gabrielash');
-use Net::ZMQ::Poll:auth('github:gabrielash');
 
 use JSON::Tiny;
 use Digest::HMAC;

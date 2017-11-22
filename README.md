@@ -1,4 +1,4 @@
-# Net::ZMQ
+# Net::Jupyter
 
 ## SYNOPSIS
 
@@ -6,11 +6,18 @@ Net::Jupyter is a Perl6 Jupyter kernel
 
 ## Introduction
 
+  This is a perl6 kernel for jupyter 
+  as of version 0.0.1, it only implements the absolute minumum messages
+  kernel_info and execute_request
+  it is also COMPLETELY insecure and would allow a user to do anything on your computer
+  
 #### Status
 
-This is in development. The only certainty is that the tests pass on my machine.  
+  In EARLY development.
 
 #### Alternatives
+
+  There is an existing perl6 kernel. I built this one because I couldn't get it running
 
 #### Versions
 
@@ -20,89 +27,24 @@ This is in development. The only certainty is that the tests pass on my machine.
 
 ## Documentation
 
-#### Net::Jupyter::Logging  (to be moved to separate rep)
+  see http://jupyter.org/ 
 
-  The logging framework based on ZMQ. Usually a singleton summoned with 
+## Installation
 
-    my $log-system = Logging::logging;
+  The module files are installed normally, but the kernel must be installed 
+  separately. 
 
-  but can also be initialized with a desired uri:
+  There is an installation script in the bin directory
+  it can also be run with 'make install'
 
-    my $log-system = Logging.new( 'tcp://127.127.8.17:8022' );
+  it is not very robust, but will try not to mess things up.
 
-  Methods
-    logger(:prefix)  ; returns a Logger 
-  
-
-#### Net::Jupyter::Logger  (to be moved to separate rep)
-
-A logger that logs to a ZMQ socket.
-
-    Example 1 simple:
-      my $l = Logging::logging.logger;
-      $l.log 'an important message';
-
-    Example 2 less simple: 
-      my $logger = Logging::logging('tcp://78.78.1.7')\
-                                    .logger\
-                                    .default-level( :warning )\
-                                    .domains( < database engine front-end nativecall > )\
-                                    .target( 'debug' )\
-                                    .format(:json);
-
-      $logger.log( 'an important message' :critical :front-end );
+  Assuming jupyter is already installed on your system, and 
+  LOCAL_HOME is defined, it will try to install in the correct .local 
+  subdir that Anaconda recognizes for jupyter kernels
+  You can also specify a custom dirctory as an argument
+  or you can read the script and install manually
 
 
 
-    
-    Attributes
-      prefix;   required
-      level; (default level  = warning)
-      target; (default target = user )
-      format;   defaulr yaml
-      default-domain; default 'none';
-      %domains ; keys are legit domain
-      debug ;  default False;
 
-    setters
-      default-level
-      domains( @list)
-      target
-      format
-
-    Methods
-      log( log-message, :level, :domain )
-        
-The logging uses a publisher sopcket. All protocols send first
-  1. prefix
-  2. domain
-  3. level
-  4. format [ zmq | yaml | json | ... ]
-  5. empty frame
-
-the next frames depend on the format. For zmq
-  6. content
-  7. timestamp
-  8. target
-
-for yaml/json
-  6. yaml/json formatted  
-
-To add your own formatter, add a role to the logger with a method 
-  method name-format(MsgBuilder :builder, :prefix, :timestamp, :level , :domain, :target, :content
-                        --> MsgBuilder ) {
-  ... your code here ...
-  return $builder;
-  }
-the builder should be returned unfinalized. 
-then set the format to name:
-  $logger.format('name');
-
-## LICENSE
-
-All files (unless noted otherwise) can be used, modified and redistributed
-under the terms of the Artistic License Version 2. Examples (in the
-documentation, in tests or distributed as separate files) can be considered
-public domain.
-
-ⓒ 2017 Gabriel Ash
