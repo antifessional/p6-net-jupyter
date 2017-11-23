@@ -1,30 +1,50 @@
 #!/usr/bin/env perl6
 
-unit module Net::Jupyter::Receiver;
+unit module Net::Jupyter::Messenger;
 
 use v6;
 
 use Net::Jupyter::Common;
 
 use Net::ZMQ::Message:auth('github:gabrielash');
+use Net::ZMQ::Socket:auth('github:gabrielash');
+
+use Log::ZMQ::Logger;
 
 use JSON::Tiny;
 use Digest::HMAC;
 use Digest::SHA;
 
 
-class Receiver is export {
+
+sub new-header($type, $session) {
+    return qq:to/HEADER_END/;
+      \{"date": "{ DateTime.new(now) }",
+      "msg_id": "{ uuid() }",
+      "username": "kernel",
+      "session": "$session",
+      "msg_type": "$type",
+      "version": "5.0"\}
+      HEADER_END
+     #:
+}
+
+class Messenger is export {
   has MsgRecv $.msg is required;
+  has Str $.session-key is required;
+  has Str $.key;
+  has Logger $.logger;
+
   has UInt $!begin;
-  has $.key;
 
 
   method TWEAK {
     $!begin = self!find-begin;
 
-    unless self.signature eq self.auth {
-      die "signature mismatch. Exiting" ~ $!msg.perl;
-     }
+    die "signature mismatch. Exiting" ~ $!msg.perl
+      unless self.auth(self.signature);
+
+    $!logger.log(self.Str) if $!logger.defined;
    }
 
   method !find-begin( --> Int ) {
@@ -53,8 +73,28 @@ class Receiver is export {
   method expressions    {return from-json(self.content)< user_expressions > }
 
 
-  method auth() {
-    return hmac-hex($!key, self.header ~ self.parent-header ~ self.metadata ~ self.content, &sha256);
+  method auth(Str $signature --> Bool) {
+    return True unless $.key.defined;
+    return ($signature eq hmac-hex($!key, self.header ~ self.parent-header ~ self.metadata ~ self.content, &sha256));
+  }
+
+  method send(Socket:D :$stream!, Str:D :$type!, :$content, :$parent-header, :$metadata, :@identities) {
+      my $header = new-header($type, $!session-key);
+      my $signature =  hmac-hex($!key, $header ~ $parent-header ~ $metadata ~ $content,  &sha256);
+      my MsgBuilder $m .= new;
+      @identities.map( { $m.add($_) } );
+      say "IDENTITES: ", @identities;
+
+      my Message $msg = $m.add(DELIM)\
+                          .add($signature)\
+                          .add( $header )\
+                          .add( $parent-header )\
+                          .add($metadata)\
+                          .add( $content )\
+                          .finalize;
+      $msg.send($stream);
+
+      $!logger.log($msg.copy) if $!logger.defined;
   }
 
   method Str() {
@@ -69,4 +109,6 @@ class Receiver is export {
       #:
   }
 
-}//Receiver
+
+
+}#Receiver

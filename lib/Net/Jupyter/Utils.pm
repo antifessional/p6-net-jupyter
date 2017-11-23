@@ -5,31 +5,12 @@ unit module Net::Jupyter::Utils;
 use v6;
 
 use JSON::Tiny;
-use Digest::HMAC;
-use Digest::SHA;
-use UUID;
+
 
 
 constant NHASH = '{}';
 constant NARRAY = '[]';
 
-
-sub uuid is export {
-  return UUID.new(:version(4)).Str;
-  #return UUID.new(:version(4)).Blob().gist.substr(14,47).split(' ').join('').uc();
-}
-
-sub new-header($type, $engine-id) is export {
-    return qq:to/HEADER_END/;
-      \{"date": "{ DateTime.new(now) }",
-      "msg_id": "{ uuid() }",
-      "username": "kernel",
-      "session": "$engine-id",
-      "msg_type": "$type",
-      "version": "5.0"\}
-      HEADER_END
-      #:
-}
 
 
 sub error-content($name, $value, $traceback='[]') is export {
@@ -54,7 +35,6 @@ sub execute_input-content($count, $code) is export {
       "code": "$code" \}
     EX_IN_END
     #;
-
 }
 
 sub stream-content($stream, $text) is export {

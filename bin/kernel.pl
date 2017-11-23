@@ -12,39 +12,30 @@ use Net::ZMQ::EchoServer:auth('github:gabrielash');
 
 use Net::Jupyter::Common;
 use Net::Jupyter::Utils;
-use Net::Jupyter::Receiver;
+use Net::Jupyter::Messenger;
 use Net::Jupyter::Executer;
 
-
 use Log::ZMQ::Logger;
-
-use JSON::Tiny;
-use Digest::HMAC;
-use Digest::SHA;
 
 my $VERSION := '0.0.1';
 my $AUTHOR  := 'Gabriel Ash';
 my $LICENSE := 'Artistic-2.0';
 my $SOURCE  :=  'https://github.com/gabrielash/jupyter-perl6';
 
-my $err-str = 'Perl6 ikernel:';
-my $engine-id;
+my Str $err-str = 'Perl6 ikernel:';
 
 constant POLL_DELAY = 10;
 
 my Logger $LOG = Logging::instance('jupyter', :format(:zmq)).logger;
-
 $LOG.log("$err-str init");
 
 my Context $ctx;
-
-my Str $key;
-my Str $scheme;
-
+my EchoServer $heartbeat;
 my Socket $ctrl;
 my Socket $shell;
 my Socket $stdin;
 my Socket $iopub;
+
 
 my Str $uri-prefix;
 my Str $ctrl-uri;
@@ -53,9 +44,9 @@ my Str $stdin-uri;
 my Str $iopub-uri;
 my Str $heartbeat-uri;
 
-my EchoServer $heartbeat;
-
-#
+my Str $key;
+my Str $scheme;
+my Str $engine-id;
 
 sub close-all {
   $LOG.log("$err-str: Exiting now");
@@ -68,31 +59,9 @@ sub close-all {
 }
 
 
-sub send(Socket:D :$stream!, Str:D :$type!, :$content, :$parent-header, :$metadata, :@identities) {
-    my $header = new-header($type, $engine-id);
-    my $signature =  hmac-hex($key, $header ~ $parent-header ~ $metadata ~ $content,  &sha256);
-    my MsgBuilder $m .= new;
-    @identities.map( { $m.add($_) } );
-    say "IDENTITES: ", @identities;
-
-    my Message $msg = $m.add(DELIM)\
-                        .add($signature)\
-                        .add( $header )\
-                        .add( $parent-header )\
-                        .add($metadata)\
-                        .add( $content )\
-                        .finalize;
-      $LOG.log("SENDING " ~ $msg.copy);
-
-      $msg.send($stream);
-  }
-
-
-
 sub shell-handler(MsgRecv $m) {
   $LOG.log("$err-str: SHELL");
-  my Receiver $recv .= new(:msg($m), :key($key));
-  $LOG.log($recv.Str);
+  my Messenger $recv .= new(:msg($m), :key($key), :session-key($engine-id), :logger($LOG));
 
   my $parent-header = $recv.header();
   my $metadata = '{}';
@@ -101,7 +70,7 @@ sub shell-handler(MsgRecv $m) {
   given $recv.type() {
     when 'kernel_info_request' {
         my $content = kernel_info-reply-content();
-        send(:stream($shell), :type('kernel_info_reply'), :$content, :$parent-header, :$metadata, :@identities);
+        $recv.send(:stream($shell), :type('kernel_info_reply'), :$content, :$parent-header, :$metadata, :@identities);
     }
     when 'execute_request' {
       my $code = $recv.code;
@@ -132,30 +101,30 @@ sub shell-handler(MsgRecv $m) {
 
       my @iopub-identities = 'execute_request';
       # we are working
-      send(:stream($iopub), :type('status'), :content(" { status-content('busy') }")
+      $recv.send(:stream($iopub), :type('status'), :content(" { status-content('busy') }")
             , :$parent-header, :metadata('{}'), :identities(@iopub-identities ));
       # publish input
-      send(:stream($iopub), :type('execute_input'), :content(execute_input-content($count, $code))
+      $recv.send(:stream($iopub), :type('execute_input'), :content(execute_input-content($count, $code))
             , :$parent-header, :metadata('{}'), :identities( @iopub-identities ));
 
       if (!$silent)  {
         # publish errors ( stderr)
-        send(:stream($iopub), :type('stream'), :content(stream-content('stderr', $err))
+        $recv.send(:stream($iopub), :type('stream'), :content(stream-content('stderr', $err))
                   , :$parent-header, :metadata('{}'), :identities( @iopub-identities ))
           if $err.defined;
           # publish side-effects (stdout)
-          send(:stream($iopub), :type('stream'), :content(stream-content('stdout', $out))
+          $recv.send(:stream($iopub), :type('stream'), :content(stream-content('stdout', $out))
                 , :$parent-header, :metadata('{}'), :identities( @iopub-identities ));
           # publish returned value
-          send(:stream($iopub), :type('execute_result'), :content(execute_result-content($count, $return-value, $metadata))
+          $recv.send(:stream($iopub), :type('execute_result'), :content(execute_result-content($count, $return-value, $metadata))
                 , :$parent-header, :metadata('{}'), :identities( @iopub-identities ));
       }
       # we are done
-      send(:stream($iopub), :type('status'), :content(status-content('idle'))
+      $recv.send(:stream($iopub), :type('status'), :content(status-content('idle'))
             , :$parent-header, :metadata('{}'), :identities( @iopub-identities ));
 
       # reply
-      send(:stream($shell), :type('execute_reply')
+      $recv.send(:stream($shell), :type('execute_reply')
           , :content(execute_reply-content($expressions, $count))
           , :$parent-header
           , :metadata(execute_reply_metadata($engine-id))
@@ -172,8 +141,7 @@ sub shell-handler(MsgRecv $m) {
 
 sub ctrl-handler(MsgRecv $m) {
   $LOG.log("$err-str: CTRL");
-  my Receiver $recv .= new(:msg($m));
-  $LOG.log($recv.Str);
+  my Messenger $recv .= new(:msg($m), :key($key), :session-key($engine-id), :logger($LOG));
   die "CTRL";
 }
 
@@ -208,6 +176,12 @@ sub MAIN( $connection-file ) {
   $stdin.bind( $stdin-uri );
 
   $key = %conn< key >;
+  $key = Str if $key eq '';
+  if !$key.defined {
+    $LOG.log("NO Security Token! Verification disabled.");
+    say "Perl6 Kernel: NO Security Token! Verification disabled."
+  }
+
   $scheme = %conn< signature_scheme >;
   die "hmac-sha256 is the only implemented signature scheme "
     unless $scheme eq 'hmac-sha256';

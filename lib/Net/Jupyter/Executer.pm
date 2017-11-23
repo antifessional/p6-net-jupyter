@@ -39,8 +39,12 @@ class Executer is export {
       self!run-expressions;
    }
 
+  method eval(Str $code --> Str) {
+    return EVAL($code).Str;
+  }
+
   method !run-code {
-      $!return-value = EVAL($!code).Str;
+      $!return-value = self.eval($!code);
       $!stderr = 'NO ERR';
       $!stdout = 'SUCCESS';
       $!error = False;
@@ -50,7 +54,7 @@ class Executer is export {
 
   method !run-expressions {
       for %!user-expressions.kv -> $name, $expr {
-        %!user-expressions{ $name } = EVAL($expr);
+        %!user-expressions{ $name } = self.eval($expr);
       }
   }
 
