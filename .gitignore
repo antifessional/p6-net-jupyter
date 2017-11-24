@@ -1,5 +1,6 @@
 lib/.precomp
 bin/k.pl
+bin/eval*
 example/simple_kernel.py
 conex
 Makefile
