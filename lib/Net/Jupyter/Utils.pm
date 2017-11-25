@@ -13,14 +13,12 @@ constant NARRAY = '[]';
 
 
 
-sub error-content($name, $value, $traceback='[]') is export {
-  return qq:to/ERROR_END/;
-    \{ "status" : "error",
-    "ename" : "$name",
-    "evalue" : "$value",
-    "traceback" : $traceback \}
-    ERROR_END
-    #;
+sub error-content($name, $value, $traceback=()) is export {
+    my %dict = Hash.new;
+    %dict< ename > = $name;
+    %dict< evalue > = $value;
+    %dict< traceback > = $traceback;
+    return to-json( %dict);
 }
 
 sub status-content($status) is export {
@@ -30,49 +28,46 @@ sub status-content($status) is export {
 
 
 sub execute_input-content($count, $code) is export {
-  return qq:to/EX_IN_END/;
-    \{"execution_count": $count,
-      "code": "$code" \}
-    EX_IN_END
-    #;
+  my %dict = Hash.new;
+  %dict< execution_count > = $count;
+  %dict< code > = $code;
+  return to-json( %dict);
 }
 
 sub stream-content($stream, $text) is export {
-  #$text = $text.split("\n").join('<br/>');
-  return qq:to/STREAM_END/;
-    \{"name": "$stream",
-      "text": "$text" \}
-    STREAM_END
-    #;
-
+  my %dict = Hash.new;
+  %dict< name > = $stream;
+  %dict< text > = $text;
+  return to-json( %dict);
 }
 
 sub execute_result-content($count, $result, $metadata) is export {
-  return qq:to/EX_RES_END/;
-    \{"execution_count": $count,
-      "data": \{ "text/plain": "$result" \},
-      "metadata": \{\} \}
-    EX_RES_END
-    #;
+  my %data = Hash.new;
+  %data{'text/plain'} = $result;
+  my %dict = Hash.new;
+  %dict< execution_count > = $count;
+  %dict< metadata  > = Hash.new;
+  %dict< data  > = %data;
+  return to-json( %dict);
 }
 
 sub execute_reply-content($count, $status, $expressions) is export {
-  return qq:to/EXECUTE_END/;
-  \{ "status": "$status",
-    "execution_count": $count,
-    "payload": [],
-    "user_expressions": $expressions \}
-  EXECUTE_END
-  #;
+  my %dict = Hash.new;
+  %dict< status > = $status;
+  %dict< execution_count > = $count;
+  %dict< payload > = ();
+  %dict< user_expressions > = $expressions;
+  return to-json( %dict);
+
 }
 
-sub execute_reply_metadata($id) is export {
-  return qq:to/EX_META_END/;
-    \{"started": "{ DateTime.new(now) }",
-    "dependencies_met": true,
-    "engine": "$id",
-    "status": "ok"\}
-    EX_META_END
+sub execute_reply_metadata($id, $status, $met) is export {
+  my %dict = Hash.new;
+  %dict< started > = DateTime.new(now).Str;
+  %dict< dependencies_met > = $met;
+  %dict< engine > = $id;
+  %dict< status > = $status;
+  return to-json( %dict);
 }
 
 

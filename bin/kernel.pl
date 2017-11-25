@@ -104,7 +104,7 @@ sub shell-handler(MsgRecv $m) {
       my @iopub-identities = 'execute_request';
       # we are working
       $recv.send(:stream($iopub), :type('status'), :content(" { status-content('busy') }")
-            , :$parent-header, :metadata('{}'), :identities(@iopub-identities ));
+            , :$parent-header, :metadata('{}'), :identities( ['status']  ));
       # publish input
       $recv.send(:stream($iopub), :type('execute_input'), :content(execute_input-content($count, $code))
             , :$parent-header, :metadata('{}'), :identities( @iopub-identities ));
@@ -115,23 +115,23 @@ sub shell-handler(MsgRecv $m) {
                   , :$parent-header, :metadata('{}'), :identities( @iopub-identities ))
               if $err.defined;
           # publish side-effects (stdout)
-          for $out.lines -> $line {
-          $recv.send(:stream($iopub), :type('stream'), :content(stream-content('stdout', $line))
-                , :$parent-header, :metadata('{}'), :identities( @iopub-identities ));
-          }
+#          for $out.lines -> $line {
+          $recv.send(:stream($iopub), :type('stream'), :content(stream-content('stdout', $out))
+                , :$parent-header, :metadata('{}'), :identities( ['stream'] ));
+#          }
           # publish returned value
           $recv.send(:stream($iopub), :type('execute_result'), :content(execute_result-content($count, $return-value, $metadata))
-                , :$parent-header, :metadata('{}'), :identities( @iopub-identities ));
+                , :$parent-header, :metadata('{}'), :identities( ['execute_result'] ));
       }
       # we are done
       $recv.send(:stream($iopub), :type('status'), :content(status-content('idle'))
-            , :$parent-header, :metadata('{}'), :identities( @iopub-identities ));
+            , :$parent-header, :metadata('{}'), :identities( ['status'] ));
 
       # reply
       $recv.send(:stream($shell), :type('execute_reply')
-          , :content(execute_reply-content($count, $err ?? 'error' || 'ok', $expressions ))
+          , :content(execute_reply-content($count, $err ?? 'error' !! 'ok', $expressions ))
           , :$parent-header
-          , :metadata(execute_reply_metadata($engine-id))
+          , :metadata(execute_reply_metadata($engine-id, 'ok', True))
           , :@identities);
 
     }#when

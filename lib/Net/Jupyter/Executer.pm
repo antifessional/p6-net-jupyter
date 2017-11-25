@@ -41,7 +41,8 @@ class Executer is export {
 
       %*ENV<RAKUDO_ERROR_COLOR> = 0;
       self!run-code;
-    #  self!run-expressions;
+      self!run-expressions
+        unless $!error;
       %*ENV<RAKUDO_ERROR_COLOR> = 1;
    }
 
@@ -129,8 +130,8 @@ class Executer is export {
 
 
 sub stringify($value) {
-  return 'Nil' if ($value === Nil);
-  return $value.gist if !$value.defined;
+  return 'Nil'        if ($value === Nil);
+  return $value.gist  if !$value.defined;
   return $value.Str;
 }
 
