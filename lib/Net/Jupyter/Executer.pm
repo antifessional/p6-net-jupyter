@@ -81,14 +81,16 @@ class Executer is export {
   }
 
   method !run-code {
+    say embed($!code);
     my $out = $*OUT;
     my $capture ='';
-    $*OUT = class { method print(*@args) {  $capture ~= @args.join;}
-                    method flush {}
+    $*OUT = class { method print(*@args) {  $capture ~= @args.join; True }
+                    method flush { True }
                   }
     $!return-value = self.eval($!code, $!error, $!warning, %!error-data, :eval);
     $*OUT = $out;
     $!stdout = $capture;
+    say "\nRV: $!return-value";
     if $!error {
       $!stderr = " %!error-data< type > : %!error-data< evalue >";
       $!stderr ~= " at %!error-data< context > " if %!error-data< context >;

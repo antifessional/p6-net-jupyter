@@ -92,13 +92,6 @@ sub shell-handler(MsgRecv $m) {
       my $expressions   = to-json( $exec.user-expressions );
       my $payloads      = to-json( $exec.payloads );
       my $metadata      = to-json( $exec.metadata );
-#      my $count         = 1;
-#      my $return-value  = '11';
-#      my $out           = 'SUCESS';
-#      my $err           = 'NO ERR';
-#      my $expressions   = '{}';
-#      my $payloads      = '[]';
-#      my $metadata      = '{}';
 
 
       my @iopub-identities = 'execute_request';
