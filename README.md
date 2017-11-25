@@ -12,11 +12,13 @@ Net::Jupyter is a Perl6 Jupyter kernel
 
   kernel_info and execute_request
 
-  it is also COMPLETELY insecure and would allow a user to do anything on your computer
+  it is also INSECURE and can allow an authorized user to run arbitrary code on your computer
   
 #### Status
 
   In EARLY development.
+
+  Current version runs every cell is its won conext. 
 
 #### Alternatives
 
@@ -36,9 +38,7 @@ Net::Jupyter is a Perl6 Jupyter kernel
 
   The module files are installed normally, but the kernel must be installed  separately. 
 
-  There is an installation script in the bin directory. It can also be run with 'make install'
-
-  it is not very robust, but will try not to mess things up.
+  There is an installation script in the bin directory. It can also be run with 'make install.'
 
   Assuming jupyter is already installed on your system, and  LOCAL_HOME is defined, 
 
@@ -46,7 +46,7 @@ Net::Jupyter is a Perl6 Jupyter kernel
   
   for jupyter kernels.  You can also specify a custom dirctory as an argument
 
-  or you can read the script and install manually
+  or you can read the script and install manually.
 
 
 

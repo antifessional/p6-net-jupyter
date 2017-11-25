@@ -26,36 +26,51 @@ class Executer is export {
   has Str $.return-value;
   has Str $.stderr;
   has Str $.stdout;
-  has Bool $.error;
+  has Str $.traceback;
+  has Bool $.error = False;
+  has Bool $.warning = False;
+  has %.error-data;
+
   has @.payloads;
   has %.metadata;
+
 
   method TWEAK {
       die "Executer called without code! { $!code.perl }" unless $!code.defined;
       ++$counter;
 
+      %*ENV<RAKUDO_ERROR_COLOR> = 0;
       self!run-code;
     #  self!run-expressions;
+      %*ENV<RAKUDO_ERROR_COLOR> = 1;
    }
 
 
-  multi method eval(Str $code, Bool $err is rw,  :$eval) {
-      $err = False;
+
+  multi method eval(Str $code, Bool $err is rw, Bool $warn is rw, %error, :$eval --> Str) {
+      my $value;
       try {
-        return EVAL(embed($code)).Str;
-        CATCH {
-          default {
-            $err = True;
-            return extract-error($_, :full);
+          $value = EVAL(embed($code));
+          $value = stringify($value);
+          CONTROL {
+            when CX::Return {
+              $value = stringify($value);
+            }
+            default {
+              $value = stringify($value);
+              $warn = True;
+              %error = extract-error($_, :full);
+            }
+          }
+          CATCH {
+            default {
+              $err = True;
+              %error = extract-error($_, :full);
+              return Str;
+            }
           }
         }
-        CONTROL {
-          default {
-            $err = True;
-            return extract-error($_, :full);
-          }
-        }
-      }
+        return $value;
   }
 
   multi method eval(Str $code, :$async --> Str) {
@@ -65,34 +80,39 @@ class Executer is export {
   }
 
   method !run-code {
-    my Bool $err;
-    my $value = self.eval($!code, $err, :eval);
-    if ($err) {
-      $!stderr = " $value< type > : $value< evalue >";
-      $!stderr ~= " at $value< context > " if $value< context >;
-      my $traceback = $value< traceback >.join('');
-      $!stderr ~= "\n$traceback";
-      $!stdout = 'ERROR';
+    my $out = $*OUT;
+    my $capture ='';
+    $*OUT = class { method print(*@args) {  $capture ~= @args.join;}
+                    method flush {}
+                  }
+    $!return-value = self.eval($!code, $!error, $!warning, %!error-data, :eval);
+    $*OUT = $out;
+    $!stdout = $capture;
+    if $!error {
+      $!stderr = " %!error-data< type > : %!error-data< evalue >";
+      $!stderr ~= " at %!error-data< context > " if %!error-data< context >;
+      $!traceback = %!error-data< traceback >.join('');
+    } elsif $!warning {
+      $!stderr = "%!error-data< type > : %!error-data< evalue >";
+      $!stderr ~= " at %!error-data< context > " if %!error-data< context >;
     } else {
-        $!stderr = Str;
-        $!return-value = $value;
-        $!stdout = "SUCCESS $value";
     }
-    $!error = $err;
+
     @!payloads = ();
     %!metadata  = ();
   }
 
   method !run-expressions {
-    my Bool $err;
     for %!user-expressions.kv -> $name, $expr {
-      my $value = self.eval($expr, $err, :eval);
+      my $err;
+      my $warn;
+      my %error;
+      my $value = self.eval($expr, $err, $warn, %error, :eval);
       if $err {
-        my %error = qw< status error >;
-        %error< ename > = $value< ename >;
-        %error< evalue > = " $value< type > : $value< evalue >";
-        %error< evalue > ~= " at $value< context > " if $value< context >;
-        %error< traceback > = $value< traceback >.join('');
+        %error< status > = 'error';
+        %error< evalue > = "%error< type > : %error< evalue >";
+        %error< evalue > ~= " at %error< context > " if %error< context >;
+        %!user-expressions{ $name }  = %error;
       }else {
         %!user-expressions{ $name }  = $value;
       }
@@ -108,6 +128,12 @@ class Executer is export {
 
 
 
+sub stringify($value) {
+  return 'Nil' if ($value === Nil);
+  return $value.gist if !$value.defined;
+  return $value.Str;
+}
+
 sub extract-error(Exception $x, :$full ) {
     my %error;
     %error< ename >  = $x.^name;
@@ -122,7 +148,7 @@ sub extract-error(Exception $x, :$full ) {
         }
         my $context = @lines.first( { .substr(0,7) ~~ '------>'} );
         %error< type  > = 'Compilation Error';
-        %error< context > = $context;
+        %error< context > = $context.split("\x23CF").join('***');
         %error< traceback > = @alts;
       }
       when 0 {
@@ -135,11 +161,15 @@ sub extract-error(Exception $x, :$full ) {
 }
 
 sub embed($code, $__random__name = random-name() ) {
-  return qq:to/ENCLOSED/;
+  my $_e = qq:to/ENCLOSED/;
     package $__random__name \{
-      our sub __X  \{ $code \}
+      our sub __X  \{
+        $code
+      \}
     \}
     $__random__name\:\:__X();
     ENCLOSED
-    #; ' / "
+    #
+
+    return $_e;
 }

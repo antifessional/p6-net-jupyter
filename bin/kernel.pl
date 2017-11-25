@@ -2,7 +2,7 @@
 
 use v6;
 
-use lib '/home/docker/workspace/perl6-jupyter/lib';
+
 
 use Net::ZMQ::Context:auth('github:gabrielash');
 use Net::ZMQ::Socket:auth('github:gabrielash');
@@ -17,7 +17,9 @@ use Net::Jupyter::Executer;
 
 use Log::ZMQ::Logger;
 
-my $VERSION := '0.0.1';
+use JSON::Tiny;
+
+my $VERSION := '0.0.2';
 my $AUTHOR  := 'Gabriel Ash';
 my $LICENSE := 'Artistic-2.0';
 my $SOURCE  :=  'https://github.com/gabrielash/jupyter-perl6';
@@ -109,12 +111,14 @@ sub shell-handler(MsgRecv $m) {
 
       if (!$silent)  {
         # publish errors ( stderr)
-        $recv.send(:stream($iopub), :type('stream'), :content(stream-content('stderr', $err))
+          $recv.send(:stream($iopub), :type('stream'), :content(stream-content('stderr', $err))
                   , :$parent-header, :metadata('{}'), :identities( @iopub-identities ))
-          if $err.defined;
+              if $err.defined;
           # publish side-effects (stdout)
-          $recv.send(:stream($iopub), :type('stream'), :content(stream-content('stdout', $out))
+          for $out.lines -> $line {
+          $recv.send(:stream($iopub), :type('stream'), :content(stream-content('stdout', $line))
                 , :$parent-header, :metadata('{}'), :identities( @iopub-identities ));
+          }
           # publish returned value
           $recv.send(:stream($iopub), :type('execute_result'), :content(execute_result-content($count, $return-value, $metadata))
                 , :$parent-header, :metadata('{}'), :identities( @iopub-identities ));
@@ -125,7 +129,7 @@ sub shell-handler(MsgRecv $m) {
 
       # reply
       $recv.send(:stream($shell), :type('execute_reply')
-          , :content(execute_reply-content($expressions, $count))
+          , :content(execute_reply-content($count, $err ?? 'error' || 'ok', $expressions ))
           , :$parent-header
           , :metadata(execute_reply_metadata($engine-id))
           , :@identities);

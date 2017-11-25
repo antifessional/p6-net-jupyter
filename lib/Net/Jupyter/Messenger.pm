@@ -80,7 +80,17 @@ class Messenger is export {
 
   method send(Socket:D :$stream!, Str:D :$type!, :$content, :$parent-header, :$metadata, :@identities) {
       my $header = new-header($type, $!session-key);
-      my $signature =  hmac-hex($!key, $header ~ $parent-header ~ $metadata ~ $content,  &sha256);
+      my $signature;
+      try {
+      $signature =  hmac-hex($!key, $header ~ $parent-header ~ $metadata ~ $content,  &sha256);
+      CATCH {
+          default {
+            say $!key;
+            say $header ~ $parent-header ~ $metadata ~ $content;
+            die $_.message;
+          }
+        }
+      }
       my MsgBuilder $m .= new;
       @identities.map( { $m.add($_) } );
       say "IDENTITES: ", @identities;

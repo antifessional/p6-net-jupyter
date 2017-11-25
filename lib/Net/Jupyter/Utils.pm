@@ -25,7 +25,7 @@ sub error-content($name, $value, $traceback='[]') is export {
 
 sub status-content($status) is export {
   die "Bad status: $status" unless ('idle','busy').grep( $status );
-  return to-json( %( qqw/ execuution_state $status/)  );
+  return to-json( %( qqw/ execution_state $status/)  );
 }
 
 
@@ -38,6 +38,7 @@ sub execute_input-content($count, $code) is export {
 }
 
 sub stream-content($stream, $text) is export {
+  #$text = $text.split("\n").join('<br/>');
   return qq:to/STREAM_END/;
     \{"name": "$stream",
       "text": "$text" \}
@@ -55,9 +56,9 @@ sub execute_result-content($count, $result, $metadata) is export {
     #;
 }
 
-sub execute_reply-content($expressions, $count) is export {
+sub execute_reply-content($count, $status, $expressions) is export {
   return qq:to/EXECUTE_END/;
-  \{ "status": "ok",
+  \{ "status": "$status",
     "execution_count": $count,
     "payload": [],
     "user_expressions": $expressions \}
