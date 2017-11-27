@@ -19,7 +19,7 @@ sub get-mime-type($data)  is export {
   return 'image/gif' if $data.starts-with('GIF89a');
   return 'image/gif' if $data.starts-with('GIF87a');
 
-  my $hex = $data.substr(0,8).encode('latin-1').gist;
+  my $hex = $data.substr(0,8).encode('UTF8-C8').gist;
   $hex = $hex.substr($hex.index('<')+1, 23).split(' ').join;
 
   return 'image/png' if $hex.starts-with('89504e47');
@@ -64,7 +64,11 @@ sub display-data(@data) is export {
   my %data = Hash.new;
   for @data -> $d {
     my $mime-type = get-mime-type($d);
-    %data{ $mime-type } = $m64.encode_base64($d);
+    my $data = $d;
+    given $mime-type {
+      when  'image/png' {  $data = $m64.encode_base64($d);}
+    }
+    %data{ $mime-type } = $data;
   }
   %dict< data > = %data;
   %dict< metadata > = Hash.new;
@@ -101,11 +105,11 @@ sub execute_reply_metadata($id, $status, $met) is export {
 }
 
 
-sub kernel_info-reply-content is export {
+sub kernel_info-reply-content($version) is export {
   my %info = <
     protocol_version 5.2.0
-    implementation  iperl6
-    implementation_version 0.0.1 >;
+    implementation  iperl6 >;
+  %info< implementation_version > =  $version;
   my %language_info = <
         name perl6
         version 6.c

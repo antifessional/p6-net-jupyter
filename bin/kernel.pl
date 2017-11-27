@@ -3,7 +3,6 @@
 use v6;
 
 
-
 use Net::ZMQ::Context:auth('github:gabrielash');
 use Net::ZMQ::Socket:auth('github:gabrielash');
 use Net::ZMQ::Message:auth('github:gabrielash');
@@ -19,7 +18,7 @@ use Log::ZMQ::Logger;
 
 use JSON::Tiny;
 
-my $VERSION := '0.0.4';
+my $VERSION := '0.0.5';
 my $AUTHOR  := 'Gabriel Ash';
 my $LICENSE := 'Artistic-2.0';
 my $SOURCE  :=  'https://github.com/gabrielash/jupyter-perl6';
@@ -71,7 +70,7 @@ sub shell-handler(MsgRecv $m) {
 
   given $recv.type() {
     when 'kernel_info_request' {
-        my $content = kernel_info-reply-content();
+        my $content = kernel_info-reply-content($VERSION);
         $recv.send(:stream($shell), :type('kernel_info_reply'), :$content, :$parent-header, :$metadata, :@identities);
     }
     when 'execute_request' {
