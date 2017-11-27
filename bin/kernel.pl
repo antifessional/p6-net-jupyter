@@ -2,7 +2,7 @@
 
 use v6;
 
-use lib '/home/docker/workspace/perl6-jupyter/lib';
+
 
 use Net::ZMQ::Context:auth('github:gabrielash');
 use Net::ZMQ::Socket:auth('github:gabrielash');
@@ -19,7 +19,7 @@ use Log::ZMQ::Logger;
 
 use JSON::Tiny;
 
-my $VERSION := '0.0.3';
+my $VERSION := '0.0.4';
 my $AUTHOR  := 'Gabriel Ash';
 my $LICENSE := 'Artistic-2.0';
 my $SOURCE  :=  'https://github.com/gabrielash/jupyter-perl6';

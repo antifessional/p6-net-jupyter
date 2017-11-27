@@ -43,7 +43,7 @@ class Messenger is export {
     $!begin = self!find-begin;
     $!msg.set-encoding( 'UTF-8');
     $!logger.log(self.Str) if $!logger.defined;
-    say self.Str;
+    #say self.Str;
 
     die "signature mismatch. Exiting" ~ $!msg.perl
       unless self.auth(self.signature);
@@ -80,25 +80,23 @@ class Messenger is export {
   method auth(Str $signature --> Bool) {
     return True unless $.key.defined;
     return ($signature eq hmac-hex($!key, $!msg.raw-at($!begin + 2)
-                                            ~ $!msg.raw-at($!begin + 3)
-                                            ~ $!msg.raw-at($!begin + 4)
-                                            ~ $!msg.raw-at($!begin + 5)
+                                          ~ $!msg.raw-at($!begin + 3)
+                                          ~ $!msg.raw-at($!begin + 4)
+                                          ~ $!msg.raw-at($!begin + 5)
                                         , &sha256));
   }
 
-  method send(Socket:D :$stream!, Str:D :$type!, :$content, :$parent-header, :$metadata, :@identities) {
+  method send(Socket:D :$stream!, Str:D :$type!,Str :$content!,Str :$parent-header!, Str :$metadata!, :@identities!) {
       my $header = new-header($type, $!session-key);
       my $signature;
       try {
-      $signature =  hmac-hex($!key, $header ~ $parent-header ~ $metadata ~ $content,  &sha256);
-      CATCH {
+        $signature =  hmac-hex($!key, $header ~ $parent-header ~ $metadata ~ $content,  &sha256);
+        CATCH {
           default {
             say $!key;
             say $header ~ $parent-header ~ $metadata ~ $content;
-            die $_.message;
-          }
-        }
-      }
+            die $_.message;}}}
+
       my MsgBuilder $m .= new;
       @identities.map( { $m.add($_) } );
       say "IDENTITES: ", @identities;
