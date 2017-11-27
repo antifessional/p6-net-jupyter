@@ -86,7 +86,7 @@ sub shell-handler(MsgRecv $m) {
       my Executer $exec .= new(:$code, :$silent, :$store-history, :%expressions);
 
       my $count         = $exec.count;
-      my $return-value  = $exec.return-value;
+      my $return-value  = $exec.return-value // '';
       my $out           = $exec.stdout;
       my $err           = $exec.stderr;
       my $expressions   = $exec.user-expressions;
@@ -108,10 +108,14 @@ sub shell-handler(MsgRecv $m) {
                   , :$parent-header, :metadata('{}'), :identities(  ['stream']  ))
               if $err.defined;
           # publish side-effects (stdout)
-#          for $out.lines -> $line {
-          $recv.send(:stream($iopub), :type('stream'), :content(stream-content('stdout', $out))
+          my $type = get-mime-type($out);
+          if is-display($type) {
+            $recv.send(:stream($iopub), :type('display_data'), :content(display-data( [ $out ] ))
+                  , :$parent-header, :metadata('{}'), :identities( ['display_data'] ));
+          } else {
+            $recv.send(:stream($iopub), :type('stream'), :content(stream-content('stdout', $out))
                 , :$parent-header, :metadata('{}'), :identities( ['stream'] ));
-#          }
+          }
           # publish returned value
           $recv.send(:stream($iopub), :type('execute_result'), :content(execute_result-content($count, $return-value, $metadata))
                 , :$parent-header, :metadata('{}'), :identities( ['execute_result'] ));

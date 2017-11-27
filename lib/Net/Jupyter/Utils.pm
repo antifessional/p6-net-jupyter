@@ -5,7 +5,31 @@ unit module Net::Jupyter::Utils;
 use v6;
 
 use JSON::Tiny;
+use MIME::Base64;
 
+my MIME::Base64 $m64 .= new;
+
+sub is-display($type)  is export {
+  return True if  $type.starts-with('image');
+  return False;
+}
+
+sub get-mime-type($data)  is export {
+  return 'image/svg+xml' if $data.starts-with('<svg');
+  return 'image/gif' if $data.starts-with('GIF89a');
+  return 'image/gif' if $data.starts-with('GIF87a');
+
+  my $hex = $data.substr(0,8).encode('latin-1').gist;
+  $hex = $hex.substr($hex.index('<')+1, 23).split(' ').join;
+
+  return 'image/png' if $hex.starts-with('89504e47');
+  return 'image/jpeg' if $hex.starts-with('ffd8ffe');
+  return 'image/tiff' if $hex.starts-with('492049');
+  return 'image/tiff' if $hex.starts-with('49492a');
+  return 'image/tiff' if $hex.starts-with('4d4d002');
+
+  return  'text/plain';
+}
 
 sub error-content($name, $value, $traceback=()) is export {
     my %dict = Hash.new;
@@ -35,9 +59,21 @@ sub stream-content($stream, $text) is export {
   return to-json( %dict);
 }
 
+sub display-data(@data) is export {
+  my %dict = Hash.new;
+  my %data = Hash.new;
+  for @data -> $d {
+    my $mime-type = get-mime-type($d);
+    %data{ $mime-type } = $m64.encode_base64($d);
+  }
+  %dict< data > = %data;
+  %dict< metadata > = Hash.new;
+  return to-json( %dict);
+}
+
 sub execute_result-content($count, $result, $metadata) is export {
   my %data = Hash.new;
-  %data{'text/plain'} = $result;
+  %data{ get-mime-type($result) } = $result;
   my %dict = Hash.new;
   %dict< execution_count > = $count;
   %dict< metadata  > = $metadata;

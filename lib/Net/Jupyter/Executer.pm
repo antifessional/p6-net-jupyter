@@ -64,6 +64,9 @@ class Executer is export {
             }
           }
           CATCH {
+            when X::Buf::AsStr {
+              $value = $value.perl;
+            }
             default {
               $err = True;
               %error = extract-error($_, :full);
