@@ -2,7 +2,7 @@
 
 use v6;
 
-
+use lib '/home/docker/workspace/perl6-jupyter/lib';
 
 use Net::ZMQ::Context:auth('github:gabrielash');
 use Net::ZMQ::Socket:auth('github:gabrielash');
@@ -19,7 +19,7 @@ use Log::ZMQ::Logger;
 
 use JSON::Tiny;
 
-my $VERSION := '0.0.2';
+my $VERSION := '0.0.3';
 my $AUTHOR  := 'Gabriel Ash';
 my $LICENSE := 'Artistic-2.0';
 my $SOURCE  :=  'https://github.com/gabrielash/jupyter-perl6';
@@ -89,23 +89,23 @@ sub shell-handler(MsgRecv $m) {
       my $return-value  = $exec.return-value;
       my $out           = $exec.stdout;
       my $err           = $exec.stderr;
-      my $expressions   = to-json( $exec.user-expressions );
-      my $payloads      = to-json( $exec.payloads );
-      my $metadata      = to-json( $exec.metadata );
+      my $expressions   = $exec.user-expressions;
+      my $payload       = $exec.payload;
+      my $metadata      = $exec.metadata;
 
 
       my @iopub-identities = 'execute_request';
       # we are working
-      $recv.send(:stream($iopub), :type('status'), :content(" { status-content('busy') }")
+      $recv.send(:stream($iopub), :type('status'), :content( status-content('busy'))
             , :$parent-header, :metadata('{}'), :identities( ['status']  ));
       # publish input
       $recv.send(:stream($iopub), :type('execute_input'), :content(execute_input-content($count, $code))
-            , :$parent-header, :metadata('{}'), :identities( @iopub-identities ));
+            , :$parent-header, :metadata('{}'), :identities(  ['execute_input']  ));
 
       if (!$silent)  {
         # publish errors ( stderr)
           $recv.send(:stream($iopub), :type('stream'), :content(stream-content('stderr', $err))
-                  , :$parent-header, :metadata('{}'), :identities( @iopub-identities ))
+                  , :$parent-header, :metadata('{}'), :identities(  ['stream']  ))
               if $err.defined;
           # publish side-effects (stdout)
 #          for $out.lines -> $line {
@@ -122,7 +122,7 @@ sub shell-handler(MsgRecv $m) {
 
       # reply
       $recv.send(:stream($shell), :type('execute_reply')
-          , :content(execute_reply-content($count, $err ?? 'error' !! 'ok', $expressions ))
+          , :content(execute_reply-content($count, $err ?? 'error' !! 'ok', $expressions, $payload ))
           , :$parent-header
           , :metadata(execute_reply_metadata($engine-id, 'ok', True))
           , :@identities);

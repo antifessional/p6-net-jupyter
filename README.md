@@ -18,11 +18,15 @@ Net::Jupyter is a Perl6 Jupyter kernel
 
   In EARLY development.
 
-  Current version runs every cell is its won conext. 
+  Current version runs every cell is its own conext.
+
 
 #### Alternatives
 
-  There is an existing perl6 kernel. I built this one because I couldn't get it running
+  There is an old existing perl6 kernel. I built this one because I couldn't get it running
+  
+  There is also a newer perl6 kernel that I haven't tried.
+
 
 #### Versions
 
@@ -36,7 +40,7 @@ Net::Jupyter is a Perl6 Jupyter kernel
 
 ## Installation
 
-  The module files are installed normally, but the kernel must be installed  separately. 
+  The module files are installed normally, but the kernel must be installed separately. 
 
   There is an installation script in the bin directory. It can also be run with 'make install.'
 

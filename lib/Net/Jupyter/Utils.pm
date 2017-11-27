@@ -7,12 +7,6 @@ use v6;
 use JSON::Tiny;
 
 
-
-constant NHASH = '{}';
-constant NARRAY = '[]';
-
-
-
 sub error-content($name, $value, $traceback=()) is export {
     my %dict = Hash.new;
     %dict< ename > = $name;
@@ -46,16 +40,16 @@ sub execute_result-content($count, $result, $metadata) is export {
   %data{'text/plain'} = $result;
   my %dict = Hash.new;
   %dict< execution_count > = $count;
-  %dict< metadata  > = Hash.new;
+  %dict< metadata  > = $metadata;
   %dict< data  > = %data;
   return to-json( %dict);
 }
 
-sub execute_reply-content($count, $status, $expressions) is export {
+sub execute_reply-content($count, $status, $expressions, $payload) is export {
   my %dict = Hash.new;
   %dict< status > = $status;
   %dict< execution_count > = $count;
-  %dict< payload > = ();
+  %dict< payload > = $payload;
   %dict< user_expressions > = $expressions;
   return to-json( %dict);
 

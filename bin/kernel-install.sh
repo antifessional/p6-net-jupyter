@@ -10,7 +10,7 @@ fi
 if [ -d "$1" ]; then 
   dir="$1"
 elif [ -d "$LOCAL_HOME" ]; then
-  dir="$LOCAL_HOME/share/jupyter/kernels/perl6"
+  dir="$LOCAL_HOME/share/jupyter/kernels/iperl6"
 else
   echo "I don't know where to install the kernel."
   echo "    you can rerun the script with the directory name as argument"

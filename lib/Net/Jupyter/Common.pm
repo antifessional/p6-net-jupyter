@@ -15,5 +15,5 @@ sub uuid is export {
 }
 
 sub random-name(Str :$prefix='a_') is export {
-  return $prefix ~ UUID.new(:version(4)).Str.substr(0,12).split('-').join('');
+  return $prefix ~ UUID.new(:version(4)).Str.substr(0,12).split('-').join;
 }

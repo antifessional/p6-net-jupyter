@@ -31,7 +31,7 @@ class Executer is export {
   has Bool $.warning = False;
   has %.error-data;
 
-  has @.payloads;
+  has @.payload;
   has %.metadata;
 
 
@@ -90,7 +90,6 @@ class Executer is export {
     $!return-value = self.eval($!code, $!error, $!warning, %!error-data, :eval);
     $*OUT = $out;
     $!stdout = $capture;
-    say "\nRV: $!return-value";
     if $!error {
       $!stderr = " %!error-data< type > : %!error-data< evalue >";
       $!stderr ~= " at %!error-data< context > " if %!error-data< context >;
@@ -98,10 +97,12 @@ class Executer is export {
     } elsif $!warning {
       $!stderr = "%!error-data< type > : %!error-data< evalue >";
       $!stderr ~= " at %!error-data< context > " if %!error-data< context >;
+      say "\nRV: $!return-value";
     } else {
+      say "\nRV: $!return-value";
     }
 
-    @!payloads = ();
+    @!payload = ();
     %!metadata  = ();
   }
 
