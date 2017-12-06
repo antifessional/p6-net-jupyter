@@ -86,7 +86,7 @@ class Messenger is export {
                                         , &sha256));
   }
 
-  method send(Socket:D :$stream!, Str:D :$type!,Str :$content!,Str :$parent-header!, Str :$metadata!, :@identities!) {
+  method send(Socket:D $stream, Str:D $type, Str $content!, Str :$parent-header!, Str :$metadata = '{}', :@identities!) {
       my $header = new-header($type, $!session-key);
       my $signature;
       try {
@@ -99,7 +99,7 @@ class Messenger is export {
 
       my MsgBuilder $m .= new;
       @identities.map( { $m.add($_) } );
-      say "IDENTITES: ", @identities;
+      say "IDENTITIES: ", @identities;
 
       my Message $msg = $m.add(DELIM)\
                           .add($signature)\

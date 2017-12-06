@@ -2,6 +2,7 @@
 
 use v6;
 
+use lib '/home/docker/workspace/perl6-jupyter/lib';
 
 use Net::ZMQ::Context:auth('github:gabrielash');
 use Net::ZMQ::Socket:auth('github:gabrielash');
@@ -10,7 +11,7 @@ use Net::ZMQ::Poll:auth('github:gabrielash');
 use Net::ZMQ::EchoServer:auth('github:gabrielash');
 
 use Net::Jupyter::Common;
-use Net::Jupyter::Utils;
+use Net::Jupyter::Messages;
 use Net::Jupyter::Messenger;
 use Net::Jupyter::Executer;
 
@@ -84,52 +85,45 @@ sub shell-handler(MsgRecv $m) {
 
       my Executer $exec .= new(:$code, :$silent, :$store-history, :%expressions);
 
-      my $count         = $exec.count;
-      my $return-value  = $exec.return-value // '';
-      my $out           = $exec.stdout;
-      my $err           = $exec.stderr;
-      my $expressions   = $exec.user-expressions;
-      my $payload       = $exec.payload;
-      my $metadata      = $exec.metadata;
+      with $exec {
+            my @iopub-identities = 'execute_request';
+            # we are working
+            $recv.send($iopub, 'status', status-content('busy')
+                        , :$parent-header, :identities( ['status']  ));
+            # publish input
+            $recv.send($iopub, 'execute_input', execute_input-content(.count, $code)
+                        , :$parent-header, :identities(  ['execute_input']  ));
 
+            if (!$silent)  {
+              # publish errors ( stderr)
+                $recv.send($iopub, 'stream', stream-content('stderr', .err)
+                          , :$parent-header, :identities(  ['stream']  ))
+                    with .err;
+                # publish side-effects (stdout)
+                my $type = get-mime-type(.out);
+                if is-display($type) {
+                  $recv.send($iopub, 'display_data', display-data( [ .out ] )
+                        , :$parent-header, :identities( ['display_data'] ));
+                } else {
+                  $recv.send($iopub, 'stream', stream-content('stdout', .out)
+                        , :$parent-header, :identities( ['stream'] ));
+                }
+                # publish returned value
+                $recv.send($iopub, 'execute_result', execute_result-content(.count, .return-value, .metadata)
+                      , :$parent-header, :identities( ['execute_result'] ));
+            }
+            # we are done
+            $recv.send($iopub, 'status', status-content('idle')
+                  , :$parent-header, :identities( ['status'] ));
 
-      my @iopub-identities = 'execute_request';
-      # we are working
-      $recv.send(:stream($iopub), :type('status'), :content( status-content('busy'))
-            , :$parent-header, :metadata('{}'), :identities( ['status']  ));
-      # publish input
-      $recv.send(:stream($iopub), :type('execute_input'), :content(execute_input-content($count, $code))
-            , :$parent-header, :metadata('{}'), :identities(  ['execute_input']  ));
+            # reply
+            $recv.send($shell, 'execute_reply'
+                , execute_reply-content(.count, .err, .expressions, .payload )
+                , :$parent-header
+                , :metadata(execute_reply_metadata($engine-id, 'ok', .dependencies-met ))
+                , :@identities);
 
-      if (!$silent)  {
-        # publish errors ( stderr)
-          $recv.send(:stream($iopub), :type('stream'), :content(stream-content('stderr', $err))
-                  , :$parent-header, :metadata('{}'), :identities(  ['stream']  ))
-              if $err.defined;
-          # publish side-effects (stdout)
-          my $type = get-mime-type($out);
-          if is-display($type) {
-            $recv.send(:stream($iopub), :type('display_data'), :content(display-data( [ $out ] ))
-                  , :$parent-header, :metadata('{}'), :identities( ['display_data'] ));
-          } else {
-            $recv.send(:stream($iopub), :type('stream'), :content(stream-content('stdout', $out))
-                , :$parent-header, :metadata('{}'), :identities( ['stream'] ));
-          }
-          # publish returned value
-          $recv.send(:stream($iopub), :type('execute_result'), :content(execute_result-content($count, $return-value, $metadata))
-                , :$parent-header, :metadata('{}'), :identities( ['execute_result'] ));
-      }
-      # we are done
-      $recv.send(:stream($iopub), :type('status'), :content(status-content('idle'))
-            , :$parent-header, :metadata('{}'), :identities( ['status'] ));
-
-      # reply
-      $recv.send(:stream($shell), :type('execute_reply')
-          , :content(execute_reply-content($count, $err ?? 'error' !! 'ok', $expressions, $payload ))
-          , :$parent-header
-          , :metadata(execute_reply_metadata($engine-id, 'ok', True))
-          , :@identities);
-
+        }#with exec
     }#when
     when 'comm_open' {
     }#when

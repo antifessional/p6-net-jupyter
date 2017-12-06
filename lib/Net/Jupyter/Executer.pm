@@ -3,19 +3,17 @@
 unit module Net::Jupyter::Executer;
 
 use v6;
-use Net::Jupyter::Common;
 
-# **************************************************** //
-use MONKEY-SEE-NO-EVAL;
-# **************************************************** //
+use Net::Jupyter::Common;
+use Net::Jupyter::EvalError;
+use Net::Jupyter::ContextREPL;
 
 class Executer is export {
 
   #class
   my int $counter = 0;
 
-  #mandatory
-  has Str $.code;
+  has Str $.code is required;
 
   #optional
   has Bool $.silent = False;
@@ -26,110 +24,64 @@ class Executer is export {
   has Str $.return-value;
   has Str $.stderr;
   has Str $.stdout;
-  has Str $.traceback;
-  has Bool $.error = False;
-  has Bool $.warning = False;
-  has %.error-data;
+  has $.traceback;
+  has %.error;
+  has Bool $.dependencies-met = True;
 
   has @.payload;
   has %.metadata;
-
+  has $!repl;
 
   method TWEAK {
-      die "Executer called without code! { $!code.perl }" unless $!code.defined;
+      die "Executer called without code! { $!code.perl }" without $!code;
       ++$counter;
+      $!repl = ContextREPL.get-repl;
 
-      %*ENV<RAKUDO_ERROR_COLOR> = 0;
       self!run-code;
       self!run-expressions
-        unless $!error;
-      %*ENV<RAKUDO_ERROR_COLOR> = 1;
+        with %!error;
+
    }
 
-
-
-  multi method eval(Str $code, Bool $err is rw, Bool $warn is rw, %error, :$eval --> Str) {
-      my $value;
-      try {
-          $value = EVAL(embed($code));
-          $value = stringify($value);
-          CONTROL {
-            when CX::Return {
-              $value = stringify($value);
-            }
-            default {
-              $value = stringify($value);
-              $warn = True;
-              %error = extract-error($_, :full);
-            }
-          }
-          CATCH {
-            when X::Buf::AsStr {
-              $value = $value.perl;
-            }
-            default {
-              $err = True;
-              %error = extract-error($_, :full);
-              return Str;
-            }
-          }
-        }
-        return $value;
-  }
-
-  multi method eval(Str $code, :$async --> Str) {
-    my $path ='/usr/local/bin/perl6';
-    my @args = ();
-    my $repl = Proc::Async.new( :$path, :@args, :w);
-  }
-
   method !run-code {
-    say embed($!code);
+    say $!code;
     my $out = $*OUT;
     my $capture ='';
     $*OUT = class { method print(*@args) {  $capture ~= @args.join; True }
-                    method flush { True }
-                  }
-    $!return-value = self.eval($!code, $!error, $!warning, %!error-data, :eval);
+                    method flush { True }}
+    try {
+      $!return-value = $!repl.eval($!code);
+      CATCH {
+        default {
+          my $error .= new( :exception( Exception($_)));
+          %!error =  $error.extract;
+          $!stderr = $error.format(:short);
+          $!traceback = %!error< traceback >;
+          $.return-value = Nil;
+          $.dependencies-met = ! so %!error<  dependencies-error >;
+        }
+      }
+    }
     $*OUT = $out;
     $!stdout = $capture;
-    if $!error {
-      $!stderr = " %!error-data< type > : %!error-data< evalue >";
-      $!stderr ~= " at %!error-data< context > " if %!error-data< context >;
-      $!traceback = %!error-data< traceback >.join('');
-    } elsif $!warning {
-      $!stderr = "%!error-data< type > : %!error-data< evalue >";
-      $!stderr ~= " at %!error-data< context > " if %!error-data< context >;
-      say "\nRV: $!return-value";
-    } else {
-      say "\nRV: $!return-value";
-    }
-
-    @!payload = ();
-    %!metadata  = ();
   }
 
   method !run-expressions {
     for %!user-expressions.kv -> $name, $expr {
-      my $err;
-      my $warn;
-      my %error;
-      my $value = self.eval($expr, $err, $warn, %error, :eval);
-      if $err {
-        %error< status > = 'error';
-        %error< evalue > = "%error< type > : %error< evalue >";
-        %error< evalue > ~= " at %error< context > " if %error< context >;
-        %!user-expressions{ $name }  = %error;
-      }else {
+      try {
+        my $value = $!repl.eval($expr, :null-context);
         %!user-expressions{ $name }  = $value;
-      }
-    }
-  }
+        CATCH {
+          default {
+            my $err .= new( :exception( Exception($_)));
+            my %error = $err.extract;
+            %!user-expressions{ $name }  = %error< status evalue>;}}}}}
 
 
   method count {
     return $counter;
   }
+
 
 }#executer
 
@@ -139,44 +91,4 @@ sub stringify($value) {
   return 'Nil'        if ($value === Nil);
   return $value.gist  if !$value.defined;
   return $value.Str;
-}
-
-sub extract-error(Exception $x, :$full ) {
-    my %error;
-    %error< ename >  = $x.^name;
-    %error< evalue > = $x.message;
-    given $x.is-compile-time {
-      when 1 {
-        my @lines = $x.gist.split("\n");
-        my @alts = ();
-        if $full {
-          my $k = @lines.first( { .trim.substr(0,9) eq 'expecting' }, :k );
-          @alts =   "  Expecting\n", | @lines[ ++$k..^@lines.elems ].map( { "$_\n" }) if $k.defined;
-        }
-        my $context = @lines.first( { .substr(0,7) ~~ '------>'} );
-        %error< type  > = 'Compilation Error';
-        %error< context > = $context.split("\x23CF").join('***');
-        %error< traceback > = @alts;
-      }
-      when 0 {
-        %error< type  > = 'Runtime Error';
-        %error< context > = '';
-        %error< traceback > = $x.backtrace ;
-      }
-    }
-    return %error;
-}
-
-sub embed($code, $__random__name = random-name() ) {
-  my $_e = qq:to/ENCLOSED/;
-    package $__random__name \{
-      our sub __X  \{
-        $code
-      \}
-    \}
-    $__random__name\:\:__X();
-    ENCLOSED
-    #
-
-    return $_e;
 }

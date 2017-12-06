@@ -1,6 +1,6 @@
 #!/usr/bin/env perl6
 
-unit module Net::Jupyter::Utils;
+unit module Net::Jupyter::Messages;
 
 use v6;
 
@@ -31,7 +31,11 @@ sub get-mime-type($data)  is export {
   return  'text/plain';
 }
 
-sub error-content($name, $value, $traceback=()) is export {
+multi sub error-content(%dict) is export {
+    return to-json( %dict< ename evalue traceback>);
+}
+
+multi sub error-content($name, $value, $traceback=()) is export {
     my %dict = Hash.new;
     %dict< ename > = $name;
     %dict< evalue > = $value;
@@ -85,14 +89,17 @@ sub execute_result-content($count, $result, $metadata) is export {
   return to-json( %dict);
 }
 
-sub execute_reply-content($count, $status, $expressions, $payload) is export {
+sub execute_reply-content($count, $error, $expressions, $payload) is export {
   my %dict = Hash.new;
-  %dict< status > = $status;
   %dict< execution_count > = $count;
-  %dict< payload > = $payload;
-  %dict< user_expressions > = $expressions;
+  with $error {
+    %dict< status > = 'error';
+  } else {
+    %dict< status > = 'ok';
+    %dict< payload > = $payload;
+    %dict< user_expressions > = $expressions;
+  }
   return to-json( %dict);
-
 }
 
 sub execute_reply_metadata($id, $status, $met) is export {
