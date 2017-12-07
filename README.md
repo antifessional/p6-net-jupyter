@@ -6,52 +6,44 @@ Net::Jupyter is a Perl6 Jupyter kernel
 
 ## Introduction
 
-  This is a perl6 kernel for jupyter 
+  This is a perl6 kernel for jupyter
 
-  as of version 0.0.1, it only implements the absolute minumum messages
+  only the minumum required messages are implemented: kernel_info_request and execute_request
 
-  kernel_info and execute_request
-
-  it is also INSECURE and can allow an authorized user to run arbitrary code on your computer
-  
 #### Status
 
-  In EARLY development.
+  In development.
 
-  Current version runs every cell is its own conext.
+  Todo:
+  1. Implement Magic statements
+  2. Implement additional messages
 
 
 #### Alternatives
 
-  There is an old existing perl6 kernel. I built this one because I couldn't get it running
-  
-  There is also a newer perl6 kernel that I haven't tried.
+  1. https://github.com/timo/iperl6kernel
 
+  2. https://github.com/bduggan/p6-jupyter-kernel
 
-#### Versions
 
 #### Portability
+  relies on Net::ZMQ
 
-## Example Code
 
 ## Documentation
 
-  see http://jupyter.org/ 
+  see http://jupyter.org/
 
 ## Installation
 
-  The module files are installed normally, but the kernel must be installed separately. 
+  The module files are installed normally, but the kernel must be installed separately.
 
   There is an installation script in the bin directory. It can also be run with 'make install.'
 
-  Assuming jupyter is already installed on your system, and  LOCAL_HOME is defined, 
+  Assuming jupyter is already installed on your system, and  LOCAL_HOME is defined,
 
-  it will try to install in the correct .local subdir that Anaconda recognizes 
-  
+  it will try to install in the correct .local subdir that Anaconda recognizes
+
   for jupyter kernels.  You can also specify a custom dirctory as an argument
 
   or you can read the script and install manually.
-
-
-
-

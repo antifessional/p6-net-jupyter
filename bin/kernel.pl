@@ -19,7 +19,7 @@ use Log::ZMQ::Logger;
 
 use JSON::Tiny;
 
-my $VERSION := '0.0.5';
+my $VERSION := '0.1.0';
 my $AUTHOR  := 'Gabriel Ash';
 my $LICENSE := 'Artistic-2.0';
 my $SOURCE  :=  'https://github.com/gabrielash/jupyter-perl6';

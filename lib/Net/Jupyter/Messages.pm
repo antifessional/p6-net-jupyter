@@ -119,7 +119,7 @@ sub kernel_info-reply-content($version) is export {
   %info< implementation_version > =  $version;
   my %language_info = <
         name perl6
-        version 6.c
+        version 6.d
         mimetype application/perl6
         file_extension .pl6>;
 =begin c

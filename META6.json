@@ -28,7 +28,7 @@
 
   },
   "production": false,
-  "version": "0.0.5",
+  "version": "0.1.0",
   "meta-version": "0",
   "authors": ["Gabriel Ash", "github:gabrielash" ],
   "description": "Perl6 ikernel for Jupyter"
