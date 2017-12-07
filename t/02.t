@@ -45,7 +45,7 @@ sub test-result(%r, $v, $o, $e) {
   ok %r<value>  === $v, "return value { $v.perl } correct";
   ok %r<out>    === $o, "output -->" ~ $o ~"<-- correct";
   if $e.defined {
-    ok %r<error>.index($e).defined, "correct: %r<error>";
+    ok %r<error>.index($e).defined, "correct: " ~ %r<error>.substr(0,90);
   } else {
     ok %r<error>  === Any, "Correct: No error";
   }
@@ -117,8 +117,13 @@ test-result(%result, Any, "", 'by zero' );
 lives-ok {test-repl(fy(|@code[6]), %result)}, "test {++$t} lives";
 test-result(%result, Any, "", 'find NO::SUCH::MODULE' );
 
+lives-ok { $r.reset('OTHER') }, 'reset OTHER' ; 
+lives-ok {test-repl(fy(|@code[3]), %result, :key('OTHER'))}, "test {++$t} lives";
+test-result(%result, Any, "", 'not declared'  );
+lives-ok {test-repl(fy(|@code[3]), %result)}, "test {++$t} lives";
+test-result(%result, 6, "", Any );
 
-say %result;
+#say %result;
 
 
 

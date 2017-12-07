@@ -21,7 +21,7 @@ class EvalError  is export {
       when 1 {
         %!error< type  > = 'Compilation Error';
         %!error< context > =  "@ line {$x.line}, pos {$x.pos} ---> {$x.pre}<***>{$x.post}";
-        %!error< traceback > = $x.suggestions.join("\n");
+        %!error< traceback > = [];
         %!error< TRACEBACK > = '';
       }
       when 0 {

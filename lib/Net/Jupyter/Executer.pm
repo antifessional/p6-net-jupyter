@@ -21,74 +21,81 @@ class Executer is export {
   has %.user-expressions;
 
   # DO NOT initialize
-  has Str $.return-value;
-  has Str $.stderr;
-  has Str $.stdout;
-  has $.traceback;
+  has $!value;
+  has Str $.out;
+
+  has Str $.err;
   has %.error;
+  has $.traceback;
   has Bool $.dependencies-met = True;
 
   has @.payload;
   has %.metadata;
   has $!repl;
 
+  method count { return $counter; }
+  method value { return stringify($!value)}
+  method reset { $counter = 0; $!repl.reset}
+
   method TWEAK {
       die "Executer called without code! { $!code.perl }" without $!code;
       ++$counter;
       $!repl = ContextREPL.get-repl;
+      %!user-expressions = Hash.new unless %!user-expressions.defined;
+      @!payload = [] unless @!payload.defined;
+      %!metadata = Hash.new unless %!metadata.defined;
 
       self!run-code;
       self!run-expressions
-        with %!error;
+        unless %!error.defined;
 
    }
 
   method !run-code {
-    say $!code;
     my $out = $*OUT;
     my $capture ='';
     $*OUT = class { method print(*@args) {  $capture ~= @args.join; True }
                     method flush { True }}
     try {
-      $!return-value = $!repl.eval($!code);
+      $!value = $!repl.eval($!code);
       CATCH {
         default {
-          my $error .= new( :exception( Exception($_)));
+          my $error = EvalError.new( :exception( $_));
           %!error =  $error.extract;
-          $!stderr = $error.format(:short);
+          $!err = $error.format(:short);
           $!traceback = %!error< traceback >;
-          $.return-value = Nil;
-          $.dependencies-met = ! so %!error<  dependencies-error >;
+          $!value = Nil;
+          $!dependencies-met = ! so %!error<  dependencies-error >;
         }
       }
     }
     $*OUT = $out;
-    $!stdout = $capture;
+    $!out = $capture;
   }
 
   method !run-expressions {
+    return unless %!user-expressions;
     for %!user-expressions.kv -> $name, $expr {
       try {
         my $value = $!repl.eval($expr, :null-context);
         %!user-expressions{ $name }  = $value;
         CATCH {
           default {
-            my $err .= new( :exception( Exception($_)));
+            my $err = EvalError.new( :exception( $_));
             my %error = $err.extract;
             %!user-expressions{ $name }  = %error< status evalue>;}}}}}
-
-
-  method count {
-    return $counter;
-  }
-
 
 }#executer
 
 
 
 sub stringify($value) {
-  return 'Nil'        if ($value === Nil);
-  return $value.gist  if !$value.defined;
-  return $value.Str;
+  my Str $v;
+  try {
+    $v = $value;
+    CATCH {
+      default {  $v = $value.gist }
+    }
+  }
+  return $v;
 }

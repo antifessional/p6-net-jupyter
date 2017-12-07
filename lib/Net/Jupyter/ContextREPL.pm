@@ -36,11 +36,13 @@ sub restore-globals(%env) {
 class ContextREPL is REPL is export {
   has %!ctxs = Hash.new;
 
-
-  method get-repl(::?CLASS:U:) {   $repl .= new(nqp::getcomp('perl6'), {}) without $repl; return $repl  }
+  method get-repl(::?CLASS:U:) {
+    $repl .= new(nqp::getcomp('perl6'), {}) without $repl;
+    return $repl;
+  }
 
   method reset(Str $key  = NAMELESS ) {
-    %!ctxs{ $key } := nqp::null();
+    %!ctxs{ $key }:delete;
   }
 
   multi method eval($code, :$no-context! ) {

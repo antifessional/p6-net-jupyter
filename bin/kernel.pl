@@ -109,7 +109,7 @@ sub shell-handler(MsgRecv $m) {
                         , :$parent-header, :identities( ['stream'] ));
                 }
                 # publish returned value
-                $recv.send($iopub, 'execute_result', execute_result-content(.count, .return-value, .metadata)
+                $recv.send($iopub, 'execute_result', execute_result-content(.count, .value, .metadata)
                       , :$parent-header, :identities( ['execute_result'] ));
             }
             # we are done
