@@ -24,7 +24,7 @@ if [[ "$CONFIRM" =~ ^[Yy]$ ]] ; then
   mkdir -p "$dir"
   cat << END > "$dir/kernel.json"
 {
-  "display_name": "Perl 6.c",
+  "display_name": "Perl 6.d",
   "argv": [
     "$dir/kernel.pl",
     "{connection_file}"
