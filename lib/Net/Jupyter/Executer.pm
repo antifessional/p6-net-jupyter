@@ -33,9 +33,9 @@ class Executer is export {
   has %.metadata;
   has $!repl;
 
-  method count { return $counter; }
-  method value { return stringify($!value)}
-  method reset { $counter = 0; $!repl.reset}
+  method count { return $counter }
+  method value { return stringify($!value) }
+  method reset { $counter = 0; $!repl.reset }
 
   method TWEAK {
       die "Executer called without code! { $!code.perl }" without $!code;
@@ -86,16 +86,3 @@ class Executer is export {
             %!user-expressions{ $name }  = %error< status evalue>;}}}}}
 
 }#executer
-
-
-
-sub stringify($value) {
-  my Str $v;
-  try {
-    $v = $value;
-    CATCH {
-      default {  $v = $value.gist }
-    }
-  }
-  return $v;
-}

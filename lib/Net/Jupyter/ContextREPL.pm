@@ -15,17 +15,16 @@ my constant NAMELESS =  '__NAMELESS__';
 class ContextREPL is REPL is export {
   has %!ctxs = Hash.new;
   has Bool $!initialized = False;
-  #has $!compiler;
 
   method get-repl(::?CLASS:U:) {
     return $repl if $repl.defined;
+
     $repl .= new(nqp::getcomp('perl6'), {});
+
     # HACK: ignore global setting
     $repl.^attributes.first('$!multi-line-enabled').set_value($repl,False);
-    return $repl;
-  }
 
-  method TWEAK {
+    return $repl;
   }
 
   method reset(Str $key  = NAMELESS ) {

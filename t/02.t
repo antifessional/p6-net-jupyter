@@ -19,7 +19,7 @@ my ContextREPL $r = ContextREPL.get-repl;
 ok $r.isa(ContextREPL), 'got REPL';
 
 
-sub test-repl($code, %result, :$key, :$null) { #say "N U L L" if $null;
+sub test-repl($code, %result, :$key, :$null) {
     %result<value error out> = (Nil,Nil,Nil); 
     say $code;
     my $out = $*OUT;
@@ -47,7 +47,7 @@ sub test-result(%r, $v, $o, $e) {
   if $e.defined && %r<error>.defined {
     ok %r<error>.index($e).defined, ": " ~ %r<error>.substr(0,90);
   } else {
-    ok %r<error>  === $e, "error is {%r<error> }<=>{ $e.gist} ";
+    ok %r<error>  === $e, "error is {%r<error>.gist }<=>{ $e.gist} ";
   }
 }
 

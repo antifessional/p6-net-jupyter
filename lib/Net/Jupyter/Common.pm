@@ -17,3 +17,15 @@ sub uuid is export {
 sub random-name(Str :$prefix='a_') is export {
   return $prefix ~ UUID.new(:version(4)).Str.substr(0,12).split('-').join;
 }
+
+
+sub stringify($value) is export {
+  return $value.gist without $value;
+  return $value.Str;
+  CONTROL {
+      default {  return $value.gist }
+  }
+  CATCH {
+      default {  return $value.gist }
+  }
+}
