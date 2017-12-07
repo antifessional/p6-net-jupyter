@@ -2,8 +2,6 @@
 
 use v6;
 
-use lib '/home/docker/workspace/perl6-jupyter/lib';
-
 use Net::ZMQ::Context:auth('github:gabrielash');
 use Net::ZMQ::Socket:auth('github:gabrielash');
 use Net::ZMQ::Message:auth('github:gabrielash');
@@ -22,9 +20,9 @@ use JSON::Tiny;
 my $VERSION := '0.1.0';
 my $AUTHOR  := 'Gabriel Ash';
 my $LICENSE := 'Artistic-2.0';
-my $SOURCE  :=  'https://github.com/gabrielash/jupyter-perl6';
+my $SOURCE  :=  'https://github.com/gabrielash/p6-net-jupyter';
 
-my Str $err-str = 'Perl6 ikernel:';
+my Str $err-str := 'Perl6 ikernel:';
 
 constant POLL_DELAY = 10;
 
@@ -82,7 +80,6 @@ sub shell-handler(MsgRecv $m) {
       my %expressions = $recv.expressions;
 
       # say "CODE: $code"; say "$silent : $store-history"; say 'EXP'~ %expressions.perl;
-
       my Executer $exec .= new(:$code, :$silent, :$store-history, :%expressions);
 
       with $exec {
@@ -99,6 +96,7 @@ sub shell-handler(MsgRecv $m) {
                 $recv.send($iopub, 'stream', stream-content('stderr', .err )
                           , :$parent-header, :identities(  ['stream']  ))
                     if .err.defined;
+
                 # publish side-effects (stdout)
                 my $type = get-mime-type(.out);
                 if is-display($type) {
@@ -112,7 +110,7 @@ sub shell-handler(MsgRecv $m) {
                 $recv.send($iopub, 'execute_result', execute_result-content(.count, .value, .metadata)
                       , :$parent-header, :identities( ['execute_result'] ));
             }
-            # we are done
+            # say we are done
             $recv.send($iopub, 'status', status-content('idle')
                   , :$parent-header, :identities( ['status'] ));
 
@@ -125,11 +123,15 @@ sub shell-handler(MsgRecv $m) {
 
         }#with exec
     }#when
+
     when 'comm_open' {
+
     }#when
+
     default {
       $LOG.log("message type $_ NOT IMPLEMENTED");
     }#default
+
   }#giveb
 }#shell-handler
 
@@ -207,7 +209,7 @@ sub USAGE {
 
     Perl6 Jupyter Kernel
     Usage
-          perl6 scriptname connection
+          perl6 scriptname connection-file
 
     Version   $VERSION
     Author    $AUTHOR
@@ -219,7 +221,9 @@ sub USAGE {
 
 }
 
-=begin c
+=finish
+
+example connection file
 {
   "control_port": 50160,
   "shell_port": 57503,
@@ -231,5 +235,4 @@ sub USAGE {
   "iopub_port": 40885,
   "key": "a0436f6c-1916-498b-8eb9-e81ab9368e84"
 }
-=end c
-=cut
+
