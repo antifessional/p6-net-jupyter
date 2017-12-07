@@ -5,6 +5,8 @@ unit module Net::Jupyter::ContextREPL;
 use v6;
 use nqp;
 
+%*ENV<RAKUDO_LINE_EDITOR> = 'none';
+
 class ContextREPL {...}
 
 my ContextREPL $repl;
@@ -50,6 +52,7 @@ class ContextREPL is REPL is export {
     $value = self.repl-eval($code, $ex , :outer_ctx($ctx));
 
     $ex.throw if $ex.defined;
+    $value.Str if $value.isa(Rat);  ## catch div by zero
 
     %!ctxs{ $key } := $*MAIN_CTX
       if ( $keep-context && $*MAIN_CTX );

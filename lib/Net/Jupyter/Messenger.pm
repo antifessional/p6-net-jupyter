@@ -86,7 +86,8 @@ class Messenger is export {
                                         , &sha256));
   }
 
-  method send(Socket:D $stream, Str:D $type, Str $content!, Str :$parent-header!, Str :$metadata = '{}', :@identities!) {
+  method send(Socket:D $stream, Str:D $type, Str $content!,
+                Str :$parent-header!, Str :$metadata = '{}', :@identities!) {
       my $header = new-header($type, $!session-key);
       my $signature;
       try {

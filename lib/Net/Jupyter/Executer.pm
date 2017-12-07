@@ -34,7 +34,7 @@ class Executer is export {
   has $!repl;
 
   method count { return $counter }
-  method value { return stringify($!value) }
+  method value {stringify($!value) }
   method reset { $counter = 0; $!repl.reset }
 
   method TWEAK {

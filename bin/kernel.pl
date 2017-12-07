@@ -72,7 +72,7 @@ sub shell-handler(MsgRecv $m) {
   given $recv.type() {
     when 'kernel_info_request' {
         my $content = kernel_info-reply-content($VERSION);
-        $recv.send(:stream($shell), :type('kernel_info_reply'), :$content, :$parent-header, :$metadata, :@identities);
+        $recv.send($shell, 'kernel_info_reply', $content, :$parent-header, :@identities);
     }
     when 'execute_request' {
       my $code = $recv.code;
@@ -96,9 +96,9 @@ sub shell-handler(MsgRecv $m) {
 
             if (!$silent)  {
               # publish errors ( stderr)
-                $recv.send($iopub, 'stream', stream-content('stderr', .err)
+                $recv.send($iopub, 'stream', stream-content('stderr', .err )
                           , :$parent-header, :identities(  ['stream']  ))
-                    with .err;
+                    if .err.defined;
                 # publish side-effects (stdout)
                 my $type = get-mime-type(.out);
                 if is-display($type) {
@@ -118,7 +118,7 @@ sub shell-handler(MsgRecv $m) {
 
             # reply
             $recv.send($shell, 'execute_reply'
-                , execute_reply-content(.count, .err, .expressions, .payload )
+                , execute_reply-content(.count, .err, .user-expressions, .payload )
                 , :$parent-header
                 , :metadata(execute_reply_metadata($engine-id, 'ok', .dependencies-met ))
                 , :@identities);

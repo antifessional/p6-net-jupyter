@@ -42,6 +42,7 @@ sub test-repl($code, %result, :$key, :$null) {
 sub fy(*@args) { return @args.join("\n") ~ "\n"};
 
 sub test-result(%r, $v, $o, $e) {
+  %r<value> = %r<value>.perl if %r<value>.isa(Rat);
   ok %r<value>  === $v, "return value { %r<value>.gist }<=>{ $v.gist } ";
   ok %r<out>    === $o, "output -->" ~ %r<out> ~"<-- ";
   if $e.defined && %r<error>.defined {
@@ -76,7 +77,8 @@ my @code = [
     [
       'use NO::SUCH::MODULE;'
     ], 
-    [ '{ say 10;']
+    [ '{ say 10;'],
+    [ '15/0']
 ];
 
 my %e1 = %*ENV;
@@ -124,9 +126,14 @@ lives-ok {test-repl(fy(|@code[3]), %result, :key('OTHER'))}, "test {++$t} lives"
 test-result(%result, Any, "", 'not declared'  );
 lives-ok {test-repl(fy(|@code[3]), %result)}, "test {++$t} lives";
 test-result(%result, 6, "", Any );
-}
+
 lives-ok {test-repl(fy(|@code[7]), %result)}, "test {++$t} lives";
 test-result(%result, Any, "", 'Missing block' );
+}
+
+lives-ok {test-repl(fy(|@code[8]), %result)}, "test {++$t} lives";
+test-result(%result, Any, "", 'by zero' );
+
 say %result;
 
 
