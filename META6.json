@@ -24,7 +24,7 @@
     "UUID"
   ],
   "tags": [
-
+      "Net", "Tools", "Web"
   ],
   "license": "Artistic-2.0",
   "test-depends": [
