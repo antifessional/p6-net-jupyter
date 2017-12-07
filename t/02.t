@@ -16,7 +16,7 @@ use Net::Jupyter::EvalError;
 use Net::Jupyter::ContextREPL;
 
 my ContextREPL $r = ContextREPL.get-repl;
-ok $r.isa(REPL), 'got REPL';
+ok $r.isa(ContextREPL), 'got REPL';
 
 
 sub test-repl($code, %result, :$key, :$null) { #say "N U L L" if $null;
@@ -42,12 +42,12 @@ sub test-repl($code, %result, :$key, :$null) { #say "N U L L" if $null;
 sub fy(*@args) { return @args.join("\n") ~ "\n"};
 
 sub test-result(%r, $v, $o, $e) {
-  ok %r<value>  === $v, "return value { $v.perl } correct";
-  ok %r<out>    === $o, "output -->" ~ $o ~"<-- correct";
-  if $e.defined {
-    ok %r<error>.index($e).defined, "correct: " ~ %r<error>.substr(0,90);
+  ok %r<value>  === $v, "return value { %r<value>.gist }<=>{ $v.gist } ";
+  ok %r<out>    === $o, "output -->" ~ %r<out> ~"<-- ";
+  if $e.defined && %r<error>.defined {
+    ok %r<error>.index($e).defined, ": " ~ %r<error>.substr(0,90);
   } else {
-    ok %r<error>  === Any, "Correct: No error";
+    ok %r<error>  === $e, "error is {%r<error> }<=>{ $e.gist} ";
   }
 }
 
@@ -75,11 +75,13 @@ my @code = [
     ],
     [
       'use NO::SUCH::MODULE;'
-    ]
+    ], 
+    [ '{ say 10;']
 ];
 
 my %e1 = %*ENV;
 my $t = 0;
+if 1 {
 lives-ok {test-repl(fy(|@code[0]), %result)}, "test {++$t} lives";
 ok %e1.perl eq %*ENV.perl, say 'ENV Invariant';
 
@@ -122,14 +124,13 @@ lives-ok {test-repl(fy(|@code[3]), %result, :key('OTHER'))}, "test {++$t} lives"
 test-result(%result, Any, "", 'not declared'  );
 lives-ok {test-repl(fy(|@code[3]), %result)}, "test {++$t} lives";
 test-result(%result, 6, "", Any );
-
-#say %result;
-
-
-
-
+}
+lives-ok {test-repl(fy(|@code[7]), %result)}, "test {++$t} lives";
+test-result(%result, Any, "", 'Missing block' );
+say %result;
 
 
 pass "...";
 
 done-testing;
+

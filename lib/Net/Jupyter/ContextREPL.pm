@@ -11,34 +11,21 @@ my ContextREPL $repl;
 
 my constant NAMELESS =  '__NAMELESS__';
 
-sub set-globals {
-  %*ENV<RAKUDO_LINE_EDITOR> = 'none';
-  %*ENV<RAKUDO_ERROR_COLOR> = 0;
-  %*ENV<RAKUDO_DISABLE_MULTILINE> = 1;
-}
-sub save-globals {
-    my %env;
-    for < RAKUDO_LINE_EDITOR RAKUDO_ERROR_COLOR  RAKUDO_DISABLE_MULTILINE > -> $k {
-      %env{$k} = %*ENV{$k} // Any;
-    }
-    return %env;
-}
-sub restore-globals(%env) {
-  for < RAKUDO_LINE_EDITOR RAKUDO_ERROR_COLOR  RAKUDO_DISABLE_MULTILINE > -> $k {
-      if %env{$k}.defined {
-        %*ENV{$k} = %env{$k};
-      } else {
-        %*ENV{$k}:delete;
-      }
-  }
-}
-
+# use get-repl instead of new
 class ContextREPL is REPL is export {
   has %!ctxs = Hash.new;
+  has Bool $!initialized = False;
+  #has $!compiler;
 
   method get-repl(::?CLASS:U:) {
-    $repl .= new(nqp::getcomp('perl6'), {}) without $repl;
+    return $repl if $repl.defined;
+    $repl .= new(nqp::getcomp('perl6'), {});
+    # HACK: ignore global setting
+    $repl.^attributes.first('$!multi-line-enabled').set_value($repl,False);
     return $repl;
+  }
+
+  method TWEAK {
   }
 
   method reset(Str $key  = NAMELESS ) {
@@ -48,6 +35,7 @@ class ContextREPL is REPL is export {
   multi method eval($code, :$no-context! ) {
       return self.eval($code, Nil, False );
   }
+
   multi method eval($code, $key = NAMELESS, $keep-context=True ) {
 
     my $*CTXSAVE := self;
@@ -60,19 +48,13 @@ class ContextREPL is REPL is export {
                   ?? %!ctxs{ $key }
                   !! nqp::null();
 
-    my %env = save-globals;
-    set-globals;
-
     $value = self.repl-eval($code, $ex , :outer_ctx($ctx));
-
-    restore-globals(%env);
 
     $ex.throw if $ex.defined;
 
     %!ctxs{ $key } := $*MAIN_CTX
       if ( $keep-context && $*MAIN_CTX );
 
-    #return Nil if ! $value.defined;
     return $value;
   }
 }#ContextREPL

@@ -16,19 +16,16 @@ use Net::Jupyter::Executer;
 sub fy(*@args) { return @args.join("\n") ~ "\n"};
 
 sub test-result($exec, $v, $o, $e) {
-  say 'V->', $exec.value;
-  say 'O->',$exec.out;
-  say 'E->',$exec.err.gist;
   if $exec.value.starts-with('sub')  {
-    ok 'sub' eq $v, "return value { $v.gist } correct";
+    ok 'sub' eq $v, "return value sub { $v.gist } ";
   }else {
-    ok $exec.value  === $v.gist, "return value { $v.gist } correct";
+    ok $exec.value  === $v.gist, "return value {$exec.value}<=>{ $v.gist } correct";
   }
   ok $exec.out    === $o, "output -->" ~ $o ~"<-- correct";
   if $e.defined {
-    ok $exec.err.index($e).defined, "correct: { $exec.err }";
+    ok $exec.err.index($e).defined, ":{ $exec.err }";
   } else {
-    ok $exec.err  === Str, "Correct: No error";
+    ok $exec.err  === Str, "No error test";
   }
 }
 
@@ -57,6 +54,9 @@ my @code = [
     ],
     [
       'use NO::SUCH::MODULE;'
+    ],
+    [
+      '{'
     ]
 ];
 
@@ -75,7 +75,7 @@ lives-ok { test-result(get-exec(6), Any, '', 'by zero') }, "test {++$t} lives";
 lives-ok { test-result(get-exec(7), Any, '', 'find NO::SUCH::MODULE') }, "test {++$t} lives";
 lives-ok { get-exec(0).reset }, 'reset' ; 
 lives-ok { test-result(get-exec(2), Any, '', 'not declared') }, "test {++$t} lives";
-
+lives-ok { test-result(get-exec(8), Any, '', 'Missing block') }, "test {++$t} lives";
 pass "...";
 
 done-testing;
