@@ -16,7 +16,6 @@ my constant NAMELESS =  '__NAMELESS__';
 # use get-repl instead of new
 class ContextREPL is REPL is export {
   has %!ctxs = Hash.new;
-  has Bool $!initialized = False;
 
   method get-repl(::?CLASS:U:) {
     return $repl if $repl.defined;
