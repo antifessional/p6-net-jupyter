@@ -13,14 +13,16 @@ class EvalError  is export {
   method extract() {
     return %!error if so %!error;
     my $x := $!exception;
-
     %!error< ename >  = $x.^name;
-    %!error< gist > = $x.message;
+    %!error< gist > = $x.message || $x.^name;
     %!error< status > = 'error';
     given $x.is-compile-time {
-      when 1 {
-        %!error< type  > = 'Compilation Error';
-        %!error< context > =  "@ line {$x.line}, pos {$x.pos} ---> {$x.pre}<***>{$x.post}";
+        when 1 {
+          %!error< type  > = 'Compilation Error';
+        try {
+            %!error< context > =  "@ line {$x.line}, pos {$x.pos} ---> {$x.pre}<***>{$x.post}";
+            CATCH { default { %!error< context > = $x.perl; }}
+        }
         %!error< traceback > = [];
         %!error< TRACEBACK > = '';
       }

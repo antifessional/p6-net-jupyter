@@ -78,7 +78,9 @@ my @code = [
       'use NO::SUCH::MODULE;'
     ], 
     [ '{ say 10;'],
-    [ '15/0']
+    [ '15/0'],
+    [ 'grammar G { token TOP { <a>+ }','token a { "d-x" -  }}'  ]
+
 ];
 
 my %e1 = %*ENV;
@@ -129,10 +131,12 @@ test-result(%result, 6, "", Any );
 
 lives-ok {test-repl(fy(|@code[7]), %result)}, "test {++$t} lives";
 test-result(%result, Any, "", 'Missing block' );
-}
 
 lives-ok {test-repl(fy(|@code[8]), %result)}, "test {++$t} lives";
 test-result(%result, Any, "", 'by zero' );
+}
+lives-ok {test-repl(fy(|@code[9]), %result)}, "test {++$t} lives";
+test-result(%result, Any, "", 'metacharacter' );
 
 say %result;
 
