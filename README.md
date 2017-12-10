@@ -30,7 +30,7 @@ Net::Jupyter is a Perl6 Jupyter kernel
   relies on Net::ZMQ
 
 
-## Documentation
+### Documentation
 
   see http://jupyter.org/
 
