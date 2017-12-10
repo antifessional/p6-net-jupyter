@@ -16,7 +16,7 @@ use Net::Jupyter::Executer;
 sub fy(*@args) { return @args.join("\n") ~ "\n"};
 
 sub test-result($exec, $v, $o, $e) {
-  if $exec.value.starts-with('sub') {
+  if $exec.value.defined && $exec.value.starts-with('sub') {
     ok 'sub' eq $v, "return value sub { $v.gist } ";
   }else {
     ok $exec.value  === $v.gist, "return value {$exec.value}<=>{ $v.gist } correct";

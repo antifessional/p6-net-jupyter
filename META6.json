@@ -16,9 +16,9 @@
 
   "depends": [
     "Net::ZMQ:auth(github:gabrielash)",
-    "Log::ZMQ:auth(github:gabrielash)",
+    "Log::ZMQ",
     "JSON::Tiny",
-    "Mime::Base64",
+    "MIME::Base64",
     "Digest::HMAC",
     "Digest::SHA256::Native",
     "UUID"

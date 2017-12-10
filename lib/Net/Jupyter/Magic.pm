@@ -1,5 +1,4 @@
 
-
 my  $wrap-output-each;
 my  $wrap-value-each;
 my  $wrap-output;
@@ -11,14 +10,13 @@ my $class;
 my $class-status;
 my $output-mime;
 my $value-mime;
+my $reset;
+
+
+
 
 class X::Jupyter:MalformedMagic is Exception {
   has Str $.message = 'malformed magic declaration';
-  has $.pre;
-  has $.post;
-  has $.line;
-  has $.pos;
-
   method is-compile-time { True }
 }
 
@@ -38,7 +36,10 @@ Grammar Magic {
   proto token declaration { * }
     token declaration:sym<ns> {
       <sym> \h+  <namespace=identifier> [ '::' <cell=identifier> ]? [ \h+ <reset> ]? \h+
-          { $name = ~ $<cell> if $<cell>.defined; $ns = ~ $<namespace>;}
+          { $name = ~ $<cell> if $<cell>.defined; 
+            $ns = ~ $<namespace>;
+            $reset = $<reset>.defined;
+          }
     }
 
     token declaration:sym<class>  { 
