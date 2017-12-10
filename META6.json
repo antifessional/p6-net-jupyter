@@ -10,15 +10,14 @@
     "kernels/perl6/logo-64x64.png"
   ],
   "build-depends": [
+    "Test::META"
   ],
-
   "auth": "github:gabrielash",
-
   "depends": [
-    "Net::ZMQ:auth(github:gabrielash)",
-    "Log::ZMQ:auth(github:gabrielash)",
+    "Net::ZMQ:auth('github:gabrielash')",
+    "Log::ZMQ",
     "JSON::Tiny",
-    "Mime::Base64",
+    "MIME::Base64",
     "Digest::HMAC",
     "Digest::SHA256::Native",
     "UUID"
