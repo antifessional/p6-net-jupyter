@@ -15,7 +15,7 @@
   "auth": "github:gabrielash",
 
   "depends": [
-    "Net::ZMQ:auth(github:gabrielash)",
+    "Net::ZMQ:auth('github:gabrielash')",
     "Log::ZMQ",
     "JSON::Tiny",
     "MIME::Base64",
@@ -39,7 +39,7 @@
         "Net::Jupyter::Messages":       "lib/Net/Jupyter/Messages.pm"
   },
   "production": false,
-  "version": "0.1.0",
+  "version": "0.1.1",
   "meta-version": "0",
   "authors": ["Gabriel Ash", "github:gabrielash" ],
   "description": "Perl6 ikernel for Jupyter"
