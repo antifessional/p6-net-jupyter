@@ -7,6 +7,8 @@ use v6;
 use Net::Jupyter::Common;
 use Net::Jupyter::EvalError;
 use Net::Jupyter::ContextREPL;
+use Net::Jupyter::Magic;
+
 
 class Executer is export {
 
@@ -31,7 +33,9 @@ class Executer is export {
 
   has @.payload;
   has %.metadata;
+
   has $!repl;
+  has Magic $magic;
 
   method count { return $counter }
   method value {stringify($!value) }
@@ -44,6 +48,9 @@ class Executer is export {
       %!user-expressions = Hash.new unless %!user-expressions.defined;
       @!payload = [] unless @!payload.defined;
       %!metadata = Hash.new unless %!metadata.defined;
+      $magic .= new;
+      $!code = $magic.parse( $!code );
+
 
       self!run-code;
       self!run-expressions
