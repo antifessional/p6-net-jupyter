@@ -129,7 +129,7 @@ test-magic( @code[11], :f  );
 test-magic( @code[13], :f);
 test-magic( @code[14], :f);
 }
-test-magic( @code[15], :f );
+test-magic( @code[15] );
 
 
 say 'runtime magic tests' ;

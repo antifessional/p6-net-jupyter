@@ -39,10 +39,8 @@ class Magic is export does ActionParser[Magic, MagicGrammar ] {
 
 
   method TOP($/)     { make $!perl-code }
-
   method code($/)    { $!perl-code = $/.Str }
-  method magic($/)   { #say $/;
-  }
+  #method magic($/)   { say $/; }
   method malformed($/){
     make ~ $/;
     X::Jupyter::MalformedMagic.new(message =>
@@ -50,18 +48,14 @@ class Magic is export does ActionParser[Magic, MagicGrammar ] {
   }
 
   method declaration:sym<ns>($/) {
-   $!name = $<cell>.Str if $<cell>.defined;
-   $!ns =  $<namespace>.Str if $<namespace>.defined;
+   $!name = $<cell>.defined ?? $<cell>.Str !! '' ;
+   $!ns =  $<namespace>.defined ?? $<namespace>.Str !! '';
    $!reset-ns = $<reset>.defined;
    #say $!name.perl ~ ':' ~$!ns.perl ~ ':' ~ $!reset-ns;
 
    X::Jupyter::MalformedMagic.new(message =>
-        'Malformed namespace: what am I supposed to reset?').throw
-     if (! $!ns.defined && $!reset-ns);
-
-   X::Jupyter::MalformedMagic.new(message =>
         'Malformed namespace: None means None').throw
-      if ($!ns eq 'None') && ( $!name.defined || $!reset-ns ) ;
+      if ($!ns eq 'None') && ( $!name || $!reset-ns ) ;
   }
 
   method declaration:sym<class>($/) {
@@ -69,13 +63,26 @@ class Magic is export does ActionParser[Magic, MagicGrammar ] {
     $!class-status = $<class_status>.Str if $<class_status>.defined;
   }
 
-  method directive($/) {
-    given $<scope>.Str {
-        when '>' { $!output-mime = $<mimetype>.Str;  }
-        when '|' { $!value-mime =  $<mimetype>.Str; }
+  method declaration:sym<wrap>($/) {
+    with $<each> {
+      given $<scope>.made {
+          when '>' { $!wrap-output-each = $<wrapper>.Str  }
+          when '|' { $!wrap-value-each =  $<wrapper>.Str }}
+      }else {
+      given $<scope>.made {
+          when '>' { $!wrap-output = $<wrapper>.Str }
+          when '|' { $!wrap-value =  $<wrapper>.Str }}
     }
   }
 
+  method directive($/) {
+    given $<scope>.made {
+        when '>' { $!output-mime = $<mimetype>.made;  }
+        when '|' { $!value-mime =  $<mimetype>.made; }
+    }
+  }
+  method scope($/)  { make $/.Str }
+  method mimetype($/) { make $/.Str }
 }#Magic
 
 grammar MagicGrammar {
@@ -83,25 +90,17 @@ grammar MagicGrammar {
   token ws  { \h* }
   token code { .* { make $/.Str } }
   rule magic  { \h* '%%' [ <directive>+ | <declaration> | <malformed> ] '%%' \n+  }
-
   rule malformed { [\w+\s*]* }
 
   proto token declaration { * }
     token declaration:sym<ns> {
-      <sym> \h+  [ <namespace=identifier> ]? [ '::' <cell=identifier> ]? [ \h+ <reset> ]? \h+
-    }
-
+      <sym> \h+  [ <namespace=identifier> ]? [ '::' <cell=identifier> ]? [ \h+ <reset> ]? \h+    }
     token declaration:sym<class>  {
-      <sym> \h+ <classname=identifier> [ \h+ <class_status> ]? \h+
-    }
-
+      <sym> \h+ <classname=identifier> [ \h+ <class_status> ]? \h+    }
     rule declaration:sym<wrap>  {
-      [ <sym> | '@' ] <each>? <scope> [ <wrapper=identifier> | '{' <wrap_body> '}' ]
-    }
+      [ <sym> | '@' ] <each>? <scope> <wrapper=identifier>     }
 
-  rule directive {
-      <scope> <mimetype>
-  }
+  rule directive {      <scope> <mimetype>  }
 
   token wrap_body     { [ \w+\s* ]+ }
   token each          { '@' }
