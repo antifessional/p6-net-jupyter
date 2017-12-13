@@ -4,10 +4,6 @@ A dockerized jupyter notebook installation with python3 and Perl6
 
 ## Installation 
 
-build with
-
-    docker build -t gabrielash/base-notebook .
-
 run with 
 
     docker run -d --name jupyter-base \
