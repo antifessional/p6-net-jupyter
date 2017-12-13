@@ -14,8 +14,8 @@ run with
 
   1.    the CONFIG Directory (Full Path) allows overriding jupyter settings. For example 
         by substituting a fixed authentification token. There is a demo
-        jupyter_notebook_config.py that you can vopy into it and edit.
+        jupyter_notebook_config.py that you can copy into it and edit.
   2.    the NOTEBOOKS Directory will hold all notebooks created. It is the top directory
-        for the Jupyter server
+        for the Jupyter server.
 
 
