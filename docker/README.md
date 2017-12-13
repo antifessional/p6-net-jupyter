@@ -10,11 +10,11 @@ build with
 
 run with 
 
-  docker run -v --name jupyter-base \
-      -p 8888:8888 \
-      -v $CONFIG:/home/jovyan/.jupyter \
-      -v $NOTEBOOKS:/home/jovyan/work \
-      gabrielash/base-notebook
+    docker run -v --name jupyter-base \
+        -p 8888:8888 \
+        -v $CONFIG:/home/jovyan/.jupyter \
+        -v $NOTEBOOKS:/home/jovyan/work \
+        gabrielash/base-notebook
 
   1.    the CONFIG Directory (Full Path) allows overriding jupyter settings. For example 
         by substituting a fixed authentification token. There is a demo
