@@ -59,9 +59,9 @@ or you can read the script and install manually.
         -v $NOTEBOOKS:/home/jovyan/work \
         gabrielash/base-notebook
 
-  1.    the CONFIG Directory (Full Path) allows overriding jupyter settings. For example 
-        by substituting a fixed authentification token. There is a demo
+  1.    set CONFIG to the directory (Full Path) for overriding jupyter settings. For example 
+        to substitute a fixed authentification token. There is a demo
         jupyter_notebook_config.py in the docker dir that you can copy into it and edit.
-  2.    the NOTEBOOKS Directory will hold all notebooks created. It is the top directory
+  2.    set NOTEBOOKS to the directory that will hold all notebooks created. It will be the top directory
         for the Jupyter server.
 
