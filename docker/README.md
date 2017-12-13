@@ -20,4 +20,4 @@ run with
 
 
 
- see also [https://github.com/jupyter/docker-stacks/tree/master/base-notebook]
+ see also [Jupyter's base-notebook docker image ](https://github.com/jupyter/docker-stacks/tree/master/base-notebook)

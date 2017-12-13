@@ -65,3 +65,4 @@ or you can read the script and install manually.
   2.    set NOTEBOOKS to the directory that will hold all notebooks created. It will be the top directory
         for the Jupyter server.
 
+ see also [Jupyter's base-notebook docker image ](https://github.com/jupyter/docker-stacks/tree/master/base-notebook)
