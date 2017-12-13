@@ -10,7 +10,7 @@ build with
 
 run with 
 
-    docker run -v --name jupyter-base \
+    docker run -d --name jupyter-base \
         -p 8888:8888 \
         -v $CONFIG:/home/jovyan/.jupyter \
         -v $NOTEBOOKS:/home/jovyan/work \
