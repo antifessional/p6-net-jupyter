@@ -10,6 +10,8 @@ Net::Jupyter is a Perl6 Jupyter kernel
 
   only the minumum required messages are implemented: kernel_info_request and execute_request
 
+#### Version 0.1.1
+
 #### Status
 
   In development.
