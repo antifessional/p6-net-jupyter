@@ -1,4 +1,6 @@
-## Docker Images
+## Docker Images 
+
+add perl6 jupyter kernel
 
 based on jupyter images
 

@@ -3,7 +3,6 @@ bin/k.pl
 bin/eval*
 bin/*.pm
 lib/Net/Jupyter/_/*
-docker/*
 example/simple_kernel.py
 conex
 Makefile

@@ -24,7 +24,8 @@ sub run-with-timeout(&start,  Int :$timeout where {$timeout >= 0 } = 0 ) is expo
                     Promise.in($timeout)\
                         .then({ #$*so.print("KILLING\n");
                                 $p.kill;
-                                sleep 2; $p.kill(9) }))
+                                sleep 2;
+                                $p.kill(9) }))
     if $timeout > 0;
   await $r;
 
