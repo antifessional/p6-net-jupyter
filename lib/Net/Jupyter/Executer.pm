@@ -9,6 +9,31 @@ use Net::Jupyter::EvalError;
 use Net::Jupyter::ContextREPL;
 use Net::Jupyter::Magic;
 
+class X::Jupyter::Timeout is Exception {
+  has Str $.message = 'Operation timed out';
+  method is-compile-time { False }
+}
+
+
+sub run-with-timeout(&start,  Int :$timeout where {$timeout >= 0 } = 0 ) is export {
+
+  #$*so.print( "TIMEOUT: $timeout \n");
+  my $p = Promise.start( &start );
+  my $r =  $p;
+  $r = Promise.anyof($p,
+                    Promise.in($timeout)\
+                        .then({ #$*so.print("KILLING\n");
+                                $p.kill;
+                                sleep 2; $p.kill(9) }))
+    if $timeout > 0;
+  await $r;
+
+  X::Jupyter::Timeout.new.throw
+    if $p.status ~~ 'Planned';
+
+  $p.result;
+}
+
 
 class Executer is export {
 
@@ -48,25 +73,31 @@ class Executer is export {
       %!user-expressions = Hash.new unless %!user-expressions.defined;
       @!payload = [] unless @!payload.defined;
       %!metadata = Hash.new unless %!metadata.defined;
-      $magic .= new;
-      $!code = $magic.parse( $!code );
-
+      $magic = Magic.parse( $!code );
+      $!code = $magic.perl-code;
 
       self!run-code;
+
       self!run-expressions
         unless %!error.defined;
+
 
    }
 
   method !run-code {
+
     my $out = $*OUT;
+    my $*so = $*OUT;
     my $capture ='';
+
     $*OUT = class { method print(*@args) {  $capture ~= @args.join; True }
                     method flush { True }}
     try {
-      $!value = $!repl.eval($!code);
+       my $timeout = $magic.timeout // 0;
+       $!value =  run-with-timeout( { $!repl.eval($!code)  }, :$timeout );
+
       CATCH {
-        default {
+        default { #$out.print( $_.perl);
           my $error = EvalError.new( :exception( $_));
           %!error =  $error.extract;
           $!err = $error.format(:short);

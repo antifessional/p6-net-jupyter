@@ -15,7 +15,7 @@ Net::Jupyter is a Perl6 Jupyter kernel
   In development.
 
   Todo:
-  1. Implement Magic statements
+  1. Implement Magic statements (see section below)
   2. Implement additional messages
 
 
@@ -27,14 +27,14 @@ Net::Jupyter is a Perl6 Jupyter kernel
 
 
 #### Portability
-  relies on Net::ZMQ
+  relies on [Net::ZMQ](https://github.com/gabrielash/perl6-zmq)
 
 
 ## Documentation
 
-  see http://jupyter.org/
+  see also http://jupyter.org/
 
-## Installation
+### Installation
 
 First, install the  module: 
 
@@ -50,3 +50,17 @@ Assuming jupyter is already installed on your system, and  LOCAL_HOME is defined
 it will try to install in the correct .local subdir that Anaconda recognizes
 for jupyter kernels.  You can also specify a custom dirctory as an argument
 or you can read the script and install manually.
+
+### Magic declarations
+
+magic declrations are lines beginning and ending with %%.
+
+All magic declarations must come at the top, and cannot be interleaved 
+with Perl6 code.
+
+#### Implemented: 
+
+    %% timeout 5 %%  
+    # sets a timeout on execution
+
+

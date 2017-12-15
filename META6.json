@@ -4,7 +4,7 @@
   "support": {
     "source": null
   },
-  "perl": "6.d",
+  "perl": "6.c",
   "resources": [
     "kernels/perl6/logo-32x32.png",
     "kernels/perl6/logo-64x64.png"
