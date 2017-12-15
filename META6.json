@@ -35,6 +35,7 @@
         "Net::Jupyter::ContextREPL":    "lib/Net/Jupyter/ContextREPL.pm",
         "Net::Jupyter::Executer":       "lib/Net/Jupyter/Executer.pm",
         "Net::Jupyter::Messenger":      "lib/Net/Jupyter/Messenger.pm",
+        "Net::Jupyter::Magic":          "lib/Net/Jupyter/Magic.pm",
         "Net::Jupyter::Messages":       "lib/Net/Jupyter/Messages.pm"
   },
   "production": false,
