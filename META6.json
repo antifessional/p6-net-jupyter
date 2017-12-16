@@ -38,7 +38,7 @@
         "Net::Jupyter::Magic":          "lib/Net/Jupyter/Magic.pm",
         "Net::Jupyter::Messages":       "lib/Net/Jupyter/Messages.pm"
   },
-  "production": false,
+  "production": false, 
   "version": "0.1.2",
   "meta-version": "0",
   "authors": ["Gabriel Ash", "github:gabrielash" ],
