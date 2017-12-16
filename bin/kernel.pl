@@ -2,7 +2,6 @@
 
 use v6;
 
-use lib '/home/docker/workspace/perl6-jupyter/lib';
 
 use Net::ZMQ::Context:auth('github:gabrielash');
 use Net::ZMQ::Socket:auth('github:gabrielash');
@@ -19,17 +18,18 @@ use Log::ZMQ::Logger;
 
 use JSON::Tiny;
 
-my $VERSION := '0.1.0';
+my $VERSION := '0.1.3';
 my $AUTHOR  := 'Gabriel Ash';
 my $LICENSE := 'Artistic-2.0';
 my $SOURCE  :=  'https://github.com/gabrielash/p6-net-jupyter';
 
-my Str $err-str := 'Perl6 ikernel:';
+my Str $err-str := 'Perl6 Jupyter kernel:';
 
 constant POLL_DELAY = 10;
 
 my Logger $LOG = Logging::instance('jupyter', :format(:zmq)).logger;
-$LOG.log("$err-str init");
+$LOG.log("$err-str init: $VERSION : $AUTHOR");
+say "$err-str init: $VERSION : $AUTHOR";
 
 my Context $ctx;
 my EchoServer $heartbeat;
@@ -123,15 +123,23 @@ sub shell-handler(MsgRecv $m) {
                 , :metadata(execute_reply_metadata($engine-id, 'ok', .dependencies-met ))
                 , :@identities);
 
+            True;
         }#with exec
     }#when
 
-    when 'comm_open' {
-
+    when 'shutdown_request' {
+        my $restart = $recv.content-value( 'restart' );
+        $recv.send($shell, 'shutdown_reply'
+            , shutdown_reply-content( $restart )
+            , :$parent-header
+            , $metadata
+            , :@identities);
+        Any;
     }#when
 
     default {
-      $LOG.log("message type $_ NOT IMPLEMENTED");
+      $LOG.log("SHELL: message type $_ NOT IMPLEMENTED");
+      True;
     }#default
 
   }#giveb
@@ -140,8 +148,32 @@ sub shell-handler(MsgRecv $m) {
 sub ctrl-handler(MsgRecv $m) {
   $LOG.log("$err-str: CTRL");
   my Messenger $recv .= new(:msg($m), :key($key), :session-key($engine-id), :logger($LOG));
-  die "CTRL";
-}
+
+  my $parent-header = $recv.header();
+  my $metadata = '{}';
+  my @identities = $recv.identities();
+
+  given $recv.type() {
+    when 'shutdown_request' {
+        my $restart = $recv.content-value( 'restart' );
+        $restart = $restart[0] if $restart ~~ List;  #WHY?
+        $LOG.log("$err-str: $restart.perl"); die $restart.gist unless $restart ~~ Bool;
+        $recv.send($shell, 'shutdown_reply'
+            , shutdown_reply-content( $restart )
+            , :$parent-header
+            , :$metadata
+            , :@identities);
+
+        close-all;
+        exit;
+        Any;
+    }#when
+    default {
+      $LOG.log("CTRL: message type $_ NOT IMPLEMENTED");
+      True;
+    }#default
+  }
+}# ctrl-handler
 
 sub MAIN( $connection-file ) {
 
@@ -188,7 +220,7 @@ sub MAIN( $connection-file ) {
   $LOG.log("$err-str heartbeat started $heartbeat-uri");
 
   my Poll $poller = PollBuilder.new\
-#      .add( MsgRecvPollHandler.new($ctrl, &ctrl-handler ))\
+      .add( MsgRecvPollHandler.new($ctrl, &ctrl-handler ))\
       .add( MsgRecvPollHandler.new($shell, &shell-handler ))\
 #      .add( MsgRecvPollHandler.new($stdin, &stdin-handler ))\
       .delay( POLL_DELAY)\
@@ -237,4 +269,3 @@ example connection file
   "iopub_port": 40885,
   "key": "a0436f6c-1916-498b-8eb9-e81ab9368e84"
 }
-
