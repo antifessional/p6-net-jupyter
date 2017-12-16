@@ -7,7 +7,7 @@ use Net::ZMQ::Context:auth('github:gabrielash');
 use Net::ZMQ::Socket:auth('github:gabrielash');
 use Net::ZMQ::Message:auth('github:gabrielash');
 use Net::ZMQ::Poll:auth('github:gabrielash');
-use Net::ZMQ::EchoServer:auth('github:gabrielash');
+use Net::ZMQ::EchoServer:auth('github:gabrielash'); 
 
 use Net::Jupyter::Common;
 use Net::Jupyter::Messages;
