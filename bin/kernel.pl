@@ -2,7 +2,7 @@
 
 use v6;
 
-
+use lib '/home/docker/workspace/perl6-jupyter/lib';
 
 use Net::ZMQ::Context:auth('github:gabrielash');
 use Net::ZMQ::Socket:auth('github:gabrielash');
@@ -53,11 +53,13 @@ my Str $engine-id;
 
 sub close-all {
   $LOG.log("$err-str: Exiting now");
+  sleep 1;
+  $heartbeat.shutdown;
+  sleep 1;
   $iopub.unbind.close;
   $stdin.unbind.close;
   $ctrl.unbind.close;
   $shell.unbind.close;
-  $heartbeat.shutdown;
   $LOG.log("$err-str: Adieu");
 }
 
@@ -74,6 +76,7 @@ sub shell-handler(MsgRecv $m) {
     when 'kernel_info_request' {
         my $content = kernel_info-reply-content($VERSION);
         $recv.send($shell, 'kernel_info_reply', $content, :$parent-header, :@identities);
+        True;
     }
     when 'execute_request' {
       my $code = $recv.code;
@@ -129,6 +132,7 @@ sub shell-handler(MsgRecv $m) {
     }#when
 
     when 'shutdown_request' {
+        $leaving = True;
         my $restart = $recv.content-value( 'restart' );
         $recv.send($shell, 'shutdown_reply'
             , shutdown_reply-content( $restart )
@@ -164,9 +168,6 @@ sub ctrl-handler(MsgRecv $m) {
             , :$parent-header
             , :$metadata
             , :@identities);
-
-        close-all;
-        exit;
         Any;
     }#when
     default {
@@ -217,9 +218,6 @@ sub MAIN( $connection-file ) {
   die "hmac-sha256 is the only implemented signature scheme "
     unless $scheme eq 'hmac-sha256';
 
-  $heartbeat = EchoServer.new( :uri($heartbeat-uri) );
-  $LOG.log("$err-str heartbeat started $heartbeat-uri");
-
   my Poll $poller = PollBuilder.new\
       .add( MsgRecvPollHandler.new($ctrl, &ctrl-handler ))\
       .add( MsgRecvPollHandler.new($shell, &shell-handler ))\
@@ -228,11 +226,14 @@ sub MAIN( $connection-file ) {
       .finalize;
 
   $LOG.log("$err-str polling set");
+  $heartbeat = EchoServer.new( :uri($heartbeat-uri) ).detach;
+  $LOG.log("$err-str heartbeat started $heartbeat-uri");
 
   loop {
       #die "POLL SETTING $shell-uri";
-      last if Any === $poller.poll();
+      last if 0 < $poller.poll().grep( ! *.defined );
   }
+
 
   close-all;
 }
