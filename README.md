@@ -83,3 +83,11 @@ with Perl6 code.
 
     %% timeout 5 %%  
     # sets a timeout on execution
+
+    %% class Classname %%
+    does Positional {
+      ...
+    }
+
+    # defines a class. Note that the magic declaration replaces the beginning 
+    # of the class declaration, but any qualification must follow outside it
