@@ -14,7 +14,7 @@
   ],
   "auth": "github:gabrielash",
   "depends": [
-    "Net::ZMQ:auth('github:gabrielash')",
+    "Net::ZMQ:auth<github:gabrielash>",
     "Log::ZMQ",
     "JSON::Tiny",
     "MIME::Base64",
